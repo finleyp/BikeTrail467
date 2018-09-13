@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:map_view/map_view.dart';
 import 'package:map_view/polyline.dart';
+import 'package:map_view/figure_joint_type.dart';
 
 //api_key for google maps
-var api_key = "";
+var api_key = "AIzaSyBZodZXTiZIxcz6iBwL076yNEq_11769Fo";
+
+List<Polyline> polyLines = new List();
+
 void main(){
   MapView.setApiKey(api_key);
   runApp(new MaterialApp(
@@ -29,70 +33,75 @@ class _MapPageState extends State<MapPage> {
   //Uri for static map, Used later to display static map
   Uri staticMapUri;
 
-  List<Polyline> polyLine = new List();
+  bool isRecording = false;
+
+  Polyline newLine = new Polyline(
+      "1",
+      <Location>[
+      ],
+      width: 15.0,
+      color: Colors.blue,
+      jointType: FigureJointType.round);
+
   showMap() {
     //this needs to be updated with gps location on start up
     //mapviewtype terrain currently, can be changed to satellite or normal
     //needs a cool title eventually
+
+
     mapView.show(new MapOptions(
         mapViewType: MapViewType.terrain,
         initialCameraPosition:
-          new CameraPosition(new Location(42.9634, -85.6681), 2.0),
+          new CameraPosition(new Location(42.9634, -85.6681), 12.0),
         showUserLocation: true,
         title: "This is a title"));
     mapView.zoomToFit(padding: 50);
 
-    Location loc1;
-    Location loc2;
-    int count = 0;
-    Polyline temp;
+
 
     mapView.onLocationUpdated
         .listen((location) {
       //print("Location updated $location");
 
-      if (loc1 == null){
-        loc1 = location;
-      } else if (loc2 == null){
-        loc2 = location;
-      }else if (loc1 !=  null && loc2 != null) {
+      //Set camera location to user location
+      mapView.setCameraPosition(new CameraPosition(location, 24.0));
 
-        print('location1: $loc1');
-        print('location2: $loc2');
-       /* mapView.addPolyline(new Polyline(
-            "12",
-            <Location>[
-              loc1,
-              loc2,
-            ],
-            width: 15.0));*/
-        count ++;
-        temp = new Polyline(
-            count.toString(),
-            <Location>[
-              loc1,
-              loc2,
-            ],
-            width: 15.0);
-        polyLine.add(temp);
-        //setPoly(loc1, loc2, count.toString());
-        setPolyLine(temp);
-        loc1 = loc2;
+      if (isRecording) {
 
-        loc2 = null;
+        //Add point to polylines object
+        newLine.points.add(location);
+
+        //Add newLine to List of polylines
+        polyLines.add(newLine);
+
       }
 
+      //Update lines on map
+      mapView.setPolylines(polyLines);
     });
+
+
 
 
     //Essential a button listener for flutter
     //Currently zooms out to random location like example
     mapView.onMapTapped.listen((_) {
       setState(() {
-        mapView.setCameraPosition(new CameraPosition(new Location(42.9639, -85.8889),15.0));
-        mapView.zoomToFit(padding: 100);
+//        mapView.setCameraPosition(new CameraPosition(new Location(42.9639, -85.8889),15.0));
+//        mapView.zoomToFit(padding: 100);
       });
     });
+  }
+
+
+  void startRecording() {
+
+    setState(() => isRecording = !isRecording);
+
+    if (isRecording){
+      showMap();
+    }
+
   }
 
   //this class builds the initial static map we need to figure out what
@@ -109,21 +118,8 @@ class _MapPageState extends State<MapPage> {
         height: 400, width: 900, mapType: StaticMapViewType.terrain);
   }
 
-  void setPoly(Location loc1, Location loc2, String x){
-    print("here: " + x);
-    mapView.addPolyline(new Polyline(
-        x,
-        <Location>[
-          loc1,
-          loc2,
-        ],
-        width: 15.0));
-    print("WOOHOO I DID IT");
-  }
 
-  void setPolyLine(Polyline line){
-    mapView.addPolyline(line);
-  }
+
   /*
   * This is the face of the app. It will determine what it looks like
   * from the app bar at the top, to each column that is placed below it
@@ -170,7 +166,12 @@ class _MapPageState extends State<MapPage> {
             "Tap the map to interact",
             style: new TextStyle(fontWeight: FontWeight.bold),
           ),
-        )
+        ),
+        new RaisedButton(
+            child: isRecording ? Text("Stop Recording") : Text("Start Recording"),
+            elevation: 2.0,
+            color: isRecording ? Colors.red : Colors.green,
+            onPressed: startRecording)
       ],
     ),
 
