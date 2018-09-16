@@ -1,2 +1,8 @@
-# BikeTrail467
-Repo for the capstone project 
+# mapview_test_poly
+
+A new Flutter application.
+
+## Getting Started
+
+For help getting started with Flutter, view our online
+[documentation](https://flutter.io/).
