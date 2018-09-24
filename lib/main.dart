@@ -1,6 +1,13 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:map_view/map_view.dart';
 import 'package:map_view/polyline.dart';
+import 'package:map_view/figure_joint_type.dart';
 
 //api_key for google maps
 var api_key = "";
@@ -17,6 +24,7 @@ class MapPage extends StatefulWidget{
 }
 
 class _MapPageState extends State<MapPage> {
+
 //  create MapView object from map_view plugin
   MapView mapView = new MapView();
 
@@ -30,6 +38,80 @@ class _MapPageState extends State<MapPage> {
   Uri staticMapUri;
 
   List<Polyline> polyLine = new List();
+
+  // gets local file path
+  Future<String> get _localPath async {
+    final directory = await getApplicationDocumentsDirectory();
+
+    return directory.path;
+  }
+
+  //file stuffffff #codeninja was here
+  Future<File> get _localFile async {
+    final path = await _localPath;
+    return File('$path/trails.txt');
+  }
+
+  //Okay the idea here is to save as a string then split the string up based off spaces
+  //then add them to a polyline and put it in one map
+  Future<void> read() async {
+    try {
+      final file = await _localFile;
+
+      // Read the file
+      String contents = await file.readAsString();
+      //create results
+      List<Polyline> results = new List();
+      //create temp to update
+      Polyline line = new Polyline(
+          "1",
+          <Location>[
+          ],
+          width: 15.0,
+          color: Colors.cyan,
+          jointType: FigureJointType.round);
+
+      //location
+      Location place;
+      List<String> guts = contents.split(" ");
+      //gotta split this up right it should be out 2
+      //might crash
+      for(int i = 0; i < guts.length; i++){
+         //make it a location
+        place = new Location(guts[i], guts[i+1]);
+        line.points.add(place);
+        polyLine.add(line);
+      }
+
+      //return results;
+    } catch (e) {
+      // If we encounter an error, return 0
+      print("We dun goofed");
+      //return NULL;
+    }
+  }
+
+  Future<File> write(List<Polyline> x) async {
+    final file = await _localFile;
+    int hold,z;
+    //string to be save
+    String toSave;
+    Location spot;
+    for(int i = 0; i < x.length; i++){
+      spot = x[i].points.elementAt(0);
+
+      toSave = toSave + spot.latitude.toString() + " " + spot.longitude.toString() + " ";
+
+    }
+
+    // Write the file
+    return file.writeAsString('$toSave');
+
+  }
+
+
+
+
   showMap() {
     //this needs to be updated with gps location on start up
     //mapviewtype terrain currently, can be changed to satellite or normal
@@ -73,7 +155,9 @@ class _MapPageState extends State<MapPage> {
               loc1,
               loc2,
             ],
-            width: 15.0);
+            width: 15.0,
+          color: Colors.cyan,
+        jointType: FigureJointType.round);
         polyLine.add(temp);
         //setPoly(loc1, loc2, count.toString());
         setPolyLine(temp);
