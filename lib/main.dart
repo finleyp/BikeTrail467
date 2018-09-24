@@ -1,12 +1,28 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:map_view/map_view.dart';
 import 'package:map_view/polyline.dart';
 import 'package:map_view/figure_joint_type.dart';
+import 'package:map_view/location.dart';
+import 'package:geolocator/geolocator.dart';
+
 
 //api_key for google maps
 var api_key = "AIzaSyBZodZXTiZIxcz6iBwL076yNEq_11769Fo";
 
 List<Polyline> polyLines = new List();
+
+MapView mapView = new MapView();
+
+bool isRecording = false;
+
+Polyline newLine = new Polyline(
+    "1",
+    <Location>[
+    ],
+    width: 15.0,
+    color: Colors.blue,
+    jointType: FigureJointType.round);
 
 void main(){
   MapView.setApiKey(api_key);
@@ -16,13 +32,16 @@ void main(){
   ));
 }
 
+
+
 class MapPage extends StatefulWidget{
   _MapPageState createState() => new _MapPageState();
 }
 
 class _MapPageState extends State<MapPage> {
 //  create MapView object from map_view plugin
-  MapView mapView = new MapView();
+  //MapView mapView = new MapView();
+
 
   // Initilize cameraPosition which displays the location on google maps
   CameraPosition cameraPosition;
@@ -33,15 +52,7 @@ class _MapPageState extends State<MapPage> {
   //Uri for static map, Used later to display static map
   Uri staticMapUri;
 
-  bool isRecording = false;
 
-  Polyline newLine = new Polyline(
-      "1",
-      <Location>[
-      ],
-      width: 15.0,
-      color: Colors.blue,
-      jointType: FigureJointType.round);
 
   showMap() {
     //this needs to be updated with gps location on start up
@@ -59,49 +70,42 @@ class _MapPageState extends State<MapPage> {
 
 
 
-    mapView.onLocationUpdated
-        .listen((location) {
-      //print("Location updated $location");
-
-      //Set camera location to user location
-      mapView.setCameraPosition(new CameraPosition(location, 24.0));
-
-      if (isRecording) {
-
-        //Add point to polylines object
-        newLine.points.add(location);
-
-        //Add newLine to List of polylines
-        polyLines.add(newLine);
-
-      }
-
-      //Update lines on map
-      mapView.setPolylines(polyLines);
-    });
-
-
-
-
-    //Essential a button listener for flutter
-    //Currently zooms out to random location like example
-    mapView.onMapTapped.listen((_) {
-      setState(() {
-//        mapView.setCameraPosition(new CameraPosition(new Location(42.9639, -85.8889),15.0));
-//        mapView.zoomToFit(padding: 100);
-      });
-    });
   }
 
 
   void startRecording() {
 
+
     setState(() => isRecording = !isRecording);
 
-    if (isRecording){
-      showMap();
-    }
+    new Timer.periodic(const Duration(seconds: 1), (timer) {
+      if(!isRecording) {
+        timer.cancel();
+      }
 
+      getPosition();
+
+    });
+  }
+
+
+  Future<Position> getPosition() async {
+
+    Position position = await Geolocator().getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best);
+
+    Location loc = new Location(position.latitude, position.longitude);
+
+    //Add point to polylines object
+    newLine.points.add(loc);
+
+    //Add newLine to List of polylines
+    polyLines.add(newLine);
+
+    //Update lines on map
+    mapView.setPolylines(polyLines);
+
+    return position;
   }
 
   //this class builds the initial static map we need to figure out what
