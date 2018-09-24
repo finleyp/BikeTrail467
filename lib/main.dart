@@ -16,6 +16,8 @@ MapView mapView = new MapView();
 
 bool isRecording = false;
 
+StreamSubscription<Position> positionStream;
+
 Polyline newLine = new Polyline(
     "1",
     <Location>[
@@ -61,52 +63,64 @@ class _MapPageState extends State<MapPage> {
 
 
     mapView.show(new MapOptions(
-        mapViewType: MapViewType.terrain,
+        mapViewType: MapViewType.normal,
         initialCameraPosition:
           new CameraPosition(new Location(42.9634, -85.6681), 12.0),
         showUserLocation: true,
         title: "This is a title"));
     mapView.zoomToFit(padding: 50);
 
-
-
   }
 
 
-  void startRecording() {
+  void toggleRecording() {
 
-
+    //toggle the isRecording boolean
     setState(() => isRecording = !isRecording);
 
-    new Timer.periodic(const Duration(seconds: 1), (timer) {
-      if(!isRecording) {
-        timer.cancel();
-      }
+    //starts stream if isRecording is true
+    if (isRecording){
+      getPositionStream();
+    } else {
 
-      getPosition();
-
-    });
+      //cancels the stream if isRecording is false
+      positionStream.cancel();
+    }
   }
 
+void getPositionStream() {
+  var geolocator = Geolocator();
+  var locationOptions = LocationOptions(
+      accuracy: LocationAccuracy.best, distanceFilter: 1);
 
-  Future<Position> getPosition() async {
+  //streamSubscription to get location on update
+  positionStream = geolocator.getPositionStream(
+      locationOptions).listen(
+          (Position position) {
+        print(
+            position == null ? 'Unknown' : position.latitude.toString() + ', ' +
+                position.longitude.toString());
 
-    Position position = await Geolocator().getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best);
+        //convert the Position object to Location object to be usable with map_view
+        Location loc = new Location(position.latitude, position.longitude);
 
-    Location loc = new Location(position.latitude, position.longitude);
+        //Add point to polylines object
+        newLine.points.add(loc);
 
-    //Add point to polylines object
-    newLine.points.add(loc);
+        //Clear the list of polylines before adding the new version
+        polyLines.clear();
 
-    //Add newLine to List of polylines
-    polyLines.add(newLine);
+        //Add newLine to List of polylines
+        polyLines.add(newLine);
 
-    //Update lines on map
-    mapView.setPolylines(polyLines);
+        mapView.clearPolylines();
 
-    return position;
-  }
+        //Update lines on map
+        mapView.setPolylines(polyLines);
+
+      });
+}
+
 
   //this class builds the initial static map we need to figure out what
   //size we want it for the app lay out
@@ -175,7 +189,7 @@ class _MapPageState extends State<MapPage> {
             child: isRecording ? Text("Stop Recording") : Text("Start Recording"),
             elevation: 2.0,
             color: isRecording ? Colors.red : Colors.green,
-            onPressed: startRecording)
+            onPressed: toggleRecording)
       ],
     ),
 
