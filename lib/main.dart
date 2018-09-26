@@ -54,7 +54,7 @@ class _MapPageState extends State<MapPage> {
 
   //Okay the idea here is to save as a string then split the string up based off spaces
   //then add them to a polyline and put it in one map
-  Future<void> read() async {
+  read() async {
     try {
       final file = await _localFile;
 
@@ -91,7 +91,7 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  Future<File> write(List<Polyline> x) async {
+  write(List<Polyline> x) async {
     final file = await _localFile;
     int hold,z;
     //string to be save
@@ -254,7 +254,19 @@ class _MapPageState extends State<MapPage> {
             "Tap the map to interact",
             style: new TextStyle(fontWeight: FontWeight.bold),
           ),
-        )
+        ),
+        new RaisedButton(
+            child: Text("Save"),
+            elevation: 2.0,
+            color: Colors.green,
+            onPressed: write(polyLine),
+      ),
+        new RaisedButton(
+          child: Text("Load"),
+          elevation: 2.0,
+          color: Colors.green,
+          onPressed: read,
+        ),
       ],
     ),
 
