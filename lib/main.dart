@@ -34,6 +34,7 @@ Polyline newLine = new Polyline(
     color: Colors.blue,
     jointType: FigureJointType.round);
 
+
 void main(){
   MapView.setApiKey(api_key);
   runApp(new MaterialApp(
@@ -42,15 +43,15 @@ void main(){
   ));
 }
 
-
-
 class MapPage extends StatefulWidget{
   _MapPageState createState() => new _MapPageState();
 }
 
 class _MapPageState extends State<MapPage> {
 //  create MapView object from map_view plugin
-  //MapView mapView = new MapView();
+
+ //MapView mapView = new MapView();
+
 
 
   // Initilize cameraPosition which displays the location on google maps
@@ -63,17 +64,18 @@ class _MapPageState extends State<MapPage> {
   Uri staticMapUri;
 
 
+  List<Polyline> polyLine = new List();
 
   showMap() {
     //this needs to be updated with gps location on start up
     //mapviewtype terrain currently, can be changed to satellite or normal
     //needs a cool title eventually
 
-
     mapView.show(new MapOptions(
         mapViewType: MapViewType.normal,
         initialCameraPosition:
         new CameraPosition(new Location(42.9634, -85.6681), 12.0),
+
         showUserLocation: true,
         title: "This is a title"));
     mapView.zoomToFit(padding: 50);
@@ -142,6 +144,8 @@ class _MapPageState extends State<MapPage> {
   }
 
 
+
+    
   //this class builds the initial static map we need to figure out what
   //size we want it for the app lay out
   void initState() {
@@ -156,8 +160,6 @@ class _MapPageState extends State<MapPage> {
         height: 400, width: 900, mapType: StaticMapViewType.terrain);
   }
 
-
-
   /*
   * This is the face of the app. It will determine what it looks like
   * from the app bar at the top, to each column that is placed below it
@@ -169,12 +171,14 @@ class _MapPageState extends State<MapPage> {
     countController.text = "Update Count: 0";
     latController.text = "Latitude: 0";
     longController.text = "Longitude: 0";
+
     return new Scaffold(
       //appBar is the bar displayed at the top of the screen
       appBar: AppBar(
         title: Text("Bike Trail"),
       ),
       body: new Column(
+
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[
           new Container(

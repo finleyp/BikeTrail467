@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.mapviewtestpoly">
+
+    package="biketrails.mapfeasibility">
+
 
     <!-- The INTERNET permission is required for development. Specifically,
          flutter needs it to communicate with the running application
@@ -7,8 +9,11 @@
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    #fine location and course location for gps
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+
     <!-- io.flutter.app.FlutterApplication is an android.app.Application that
          calls FlutterMain.startInitialization(this); in its onCreate method.
          In most cases you can leave this as-is, but you if you want to provide
@@ -16,10 +21,14 @@
          FlutterApplication and put your custom class here. -->
     <application
         android:name="io.flutter.app.FlutterApplication"
-        android:label="mapview_test_poly"
+
+        android:label="map_feasibility"
         android:icon="@mipmap/ic_launcher">
+        #meta data that works with flutter plugin map_view that lets you access google maps
         <meta-data android:name="com.google.android.maps.v2.API_KEY" android:value="AIzaSyBZodZXTiZIxcz6iBwL076yNEq_11769Fo"/>
         <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version"/>
+
+
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"
