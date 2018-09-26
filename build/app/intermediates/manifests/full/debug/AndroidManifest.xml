@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.mapviewtestpoly"
+    package="biketrails.mapfeasibility"
     android:versionCode="1"
     android:versionName="1.0.0" >
 
@@ -14,6 +14,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET" />
+    #fine location and course location for gps
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Include required permissions for Google Maps API to run. -->
@@ -33,7 +34,8 @@
         android:name="io.flutter.app.FlutterApplication"
         android:debuggable="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="mapview_test_poly" >
+        android:label="map_feasibility" >
+        #meta data that works with flutter plugin map_view that lets you access google maps
         <meta-data
             android:name="com.google.android.maps.v2.API_KEY"
             android:value="AIzaSyBZodZXTiZIxcz6iBwL076yNEq_11769Fo" />
@@ -42,7 +44,7 @@
             android:value="@integer/google_play_services_version" />
 
         <activity
-            android:name="com.example.mapviewtestpoly.MainActivity"
+            android:name="biketrails.mapfeasibility.MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|layoutDirection|fontScale|screenLayout|density"
             android:hardwareAccelerated="true"
             android:launchMode="singleTop"
@@ -72,10 +74,6 @@
             android:name="com.google.android.gms.common.api.GoogleApiActivity"
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-
-        <meta-data
-            android:name="android.support.VERSION"
-            android:value="26.1.0" />
     </application>
 
 </manifest>
