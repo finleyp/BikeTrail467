@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "/home/braedin/AndroidStudioProjects/mapview_test_poly/build/app/intermediates/incremental/mergeDebugResources/merged.dir/values/values.xml",
+            "outputFile": "/home/braedin/AndroidStudioProjects/BikeTrail467/build/app/intermediates/incremental/mergeDebugResources/merged.dir/values/values.xml",
             "map": [
                 {
                     "source": "/home/braedin/.gradle/caches/transforms-1/files-1.1/support-compat-27.1.1.aar/27c47abb55d757981c02410cf4df5ebd/res/values/values.xml",
@@ -40,7 +40,24 @@
                     }
                 },
                 {
-                    "source": "/home/braedin/AndroidStudioProjects/mapview_test_poly/android/app/src/main/res/values/styles.xml",
+                    "source": "/home/braedin/.gradle/caches/transforms-1/files-1.1/play-services-basement-15.0.1.aar/82195dc1cef9f6c229435e6fdc8cbf3b/res/values/values.xml",
+                    "from": {
+                        "startLines": "4,7",
+                        "startColumns": "0,0",
+                        "startOffsets": "238,401",
+                        "endColumns": "63,166",
+                        "endOffsets": "301,567"
+                    },
+                    "to": {
+                        "startLines": "505,544",
+                        "startColumns": "4,4",
+                        "startOffsets": "41977,45274",
+                        "endColumns": "67,166",
+                        "endOffsets": "42040,45436"
+                    }
+                },
+                {
+                    "source": "/home/braedin/AndroidStudioProjects/BikeTrail467/android/app/src/main/res/values/styles.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
@@ -56,23 +73,6 @@
                         "endLines": "1623",
                         "endColumns": "12",
                         "endOffsets": "115165"
-                    }
-                },
-                {
-                    "source": "/home/braedin/.gradle/caches/transforms-1/files-1.1/play-services-basement-15.0.1.aar/82195dc1cef9f6c229435e6fdc8cbf3b/res/values/values.xml",
-                    "from": {
-                        "startLines": "4,7",
-                        "startColumns": "0,0",
-                        "startOffsets": "238,401",
-                        "endColumns": "63,166",
-                        "endOffsets": "301,567"
-                    },
-                    "to": {
-                        "startLines": "505,544",
-                        "startColumns": "4,4",
-                        "startOffsets": "41977,45274",
-                        "endColumns": "67,166",
-                        "endOffsets": "42040,45436"
                     }
                 },
                 {
@@ -114,7 +114,7 @@
                     }
                 },
                 {
-                    "source": "/home/braedin/.gradle/caches/transforms-1/files-1.1/support-media-compat-26.1.0.aar/e0d79e283d914dc34d12bb2697dae7c2/res/values/values.xml",
+                    "source": "/home/braedin/.gradle/caches/transforms-1/files-1.1/support-media-compat-27.1.1.aar/e80fc084d63ded747646c0ebbb792018/res/values/values.xml",
                     "from": {
                         "startLines": "2,6,7,8,9,10",
                         "startColumns": "4,4,4,4,4,4",

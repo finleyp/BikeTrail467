@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "/home/braedin/AndroidStudioProjects/mapview_test_poly/build/app/intermediates/incremental/mergeDebugResources/merged.dir/values-v21/values-v21.xml",
+            "outputFile": "/home/braedin/AndroidStudioProjects/BikeTrail467/build/app/intermediates/incremental/mergeDebugResources/merged.dir/values-v21/values-v21.xml",
             "map": [
                 {
                     "source": "/home/braedin/.gradle/caches/transforms-1/files-1.1/appcompat-v7-27.1.1.aar/2e40fd29e787bdf86035d941eebfdd04/res/values-v21/values-v21.xml",
@@ -23,7 +23,7 @@
                     }
                 },
                 {
-                    "source": "/home/braedin/.gradle/caches/transforms-1/files-1.1/support-media-compat-26.1.0.aar/e0d79e283d914dc34d12bb2697dae7c2/res/values-v21/values-v21.xml",
+                    "source": "/home/braedin/.gradle/caches/transforms-1/files-1.1/support-media-compat-27.1.1.aar/e80fc084d63ded747646c0ebbb792018/res/values-v21/values-v21.xml",
                     "from": {
                         "startLines": "2,5,8,11",
                         "startColumns": "4,4,4,4",

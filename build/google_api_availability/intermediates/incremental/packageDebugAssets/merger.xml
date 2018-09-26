@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger version="3"><dataSet config="main"><source path="/home/braedin/development/flutter/.pub-cache/hosted/pub.dartlang.org/google_api_availability-1.0.2/android/src/main/assets"/><source path="/home/braedin/AndroidStudioProjects/BikeTrail467/build/google_api_availability/generated/assets/shaders/debug"/></dataSet><dataSet config="debug"><source path="/home/braedin/development/flutter/.pub-cache/hosted/pub.dartlang.org/google_api_availability-1.0.2/android/src/debug/assets"/></dataSet></merger>
