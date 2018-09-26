@@ -1,6 +1,6 @@
-# mapview_test_poly
+# Bike Trails
 
-A new Flutter application.
+An app to record bike trails 
 
 ## Getting Started
 
