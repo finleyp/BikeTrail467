@@ -7,6 +7,7 @@ INJECTED from C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\android\
 MERGED from [:map_view] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\map_view\intermediates\manifests\full\debug\AndroidManifest.xml:2:1-11:12
 MERGED from [:permission_handler] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\permission_handler\intermediates\manifests\full\debug\AndroidManifest.xml:2:1-7:12
 MERGED from [:geolocator] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\geolocator\intermediates\manifests\full\debug\AndroidManifest.xml:2:1-10:12
+MERGED from [:path_provider] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\path_provider\intermediates\manifests\full\debug\AndroidManifest.xml:2:1-7:12
 MERGED from [:google_api_availability] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\google_api_availability\intermediates\manifests\full\debug\AndroidManifest.xml:2:1-7:12
 MERGED from [com.android.support:appcompat-v7:27.1.1] C:\Users\Patton Finley\.gradle\caches\transforms-1\files-1.1\appcompat-v7-27.1.1.aar\4cdc66860c9584e559d79e17d9278512\AndroidManifest.xml:17:1-22:12
 MERGED from [com.google.android.gms:play-services-maps:15.0.1] C:\Users\Patton Finley\.gradle\caches\transforms-1\files-1.1\play-services-maps-15.0.1.aar\3f8cdd613189fa4f477e3a1c9607d1eb\AndroidManifest.xml:17:1-32:12
@@ -142,6 +143,8 @@ MERGED from [:permission_handler] C:\Users\Patton Finley\AndroidStudioProjects\B
 MERGED from [:permission_handler] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\permission_handler\intermediates\manifests\full\debug\AndroidManifest.xml:5:5-44
 MERGED from [:geolocator] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\geolocator\intermediates\manifests\full\debug\AndroidManifest.xml:5:5-44
 MERGED from [:geolocator] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\geolocator\intermediates\manifests\full\debug\AndroidManifest.xml:5:5-44
+MERGED from [:path_provider] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\path_provider\intermediates\manifests\full\debug\AndroidManifest.xml:5:5-44
+MERGED from [:path_provider] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\path_provider\intermediates\manifests\full\debug\AndroidManifest.xml:5:5-44
 MERGED from [:google_api_availability] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\google_api_availability\intermediates\manifests\full\debug\AndroidManifest.xml:5:5-44
 MERGED from [:google_api_availability] C:\Users\Patton Finley\AndroidStudioProjects\BikeTrail467\build\google_api_availability\intermediates\manifests\full\debug\AndroidManifest.xml:5:5-44
 MERGED from [com.android.support:appcompat-v7:27.1.1] C:\Users\Patton Finley\.gradle\caches\transforms-1\files-1.1\appcompat-v7-27.1.1.aar\4cdc66860c9584e559d79e17d9278512\AndroidManifest.xml:20:5-44

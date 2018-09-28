@@ -5,6 +5,9 @@ import 'package:map_view/polyline.dart';
 import 'package:map_view/figure_joint_type.dart';
 import 'package:map_view/location.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'dart:convert';
 
 
 //api_key for google maps
@@ -65,6 +68,13 @@ class _MapPageState extends State<MapPage> {
 
 
   List<Polyline> polyLine = new List();
+
+  //save stuff
+  File trailsJsonFile;
+  Directory dir;
+  String fileName = "Trails.json";
+  bool fileExists = false;
+  Map<String, List<Polyline>> trailContent;
 
   showMap() {
     //this needs to be updated with gps location on start up
@@ -141,6 +151,9 @@ class _MapPageState extends State<MapPage> {
           mapView.setPolylines(polyLines);
 
         });
+
+
+
   }
 
 
@@ -158,6 +171,39 @@ class _MapPageState extends State<MapPage> {
     staticMapUri = staticMapProvider.getStaticUri(
         new Location(42.9634, -85.6681), 12,
         height: 400, width: 900, mapType: StaticMapViewType.terrain);
+    getApplicationDocumentsDirectory().then((Directory directory){
+      dir = directory;
+      trailsJsonFile = new File(dir.path + "/" + fileName);
+      fileExists = trailsJsonFile.existsSync();
+      //the example used read as strings. I am trying to read as bytes may fail
+      //HEREREREERERHERERER
+      if (fileExists) this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
+    });
+  }
+
+  //createJsonFile method
+  //feels redundent
+  void createJson(Map<String, List<Polyline>> tInfo, Directory dir, String fileName){
+    File file = new File(dir.path + "/" + fileName);
+    file.createSync();
+    fileExists = true;
+    file.writeAsStringSync(json.encode(tInfo));
+  }
+
+  //saveTrail Method
+  //woo time to save
+  void saveTrail(String name, List<Polyline> lines){
+    Map<String, List<Polyline>> tInfo = {name: lines};
+    if(fileExists){
+      Map<String, List<Polyline>> jsonFileContent = json.decode(trailsJsonFile.readAsStringSync());
+      jsonFileContent.addAll(tInfo);
+      trailsJsonFile.writeAsStringSync(json.encode(tInfo));
+    }else {
+      createJson(tInfo, dir, fileName);
+    }
+    this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
+    print("saved");
+    print(trailContent);
   }
 
   /*
@@ -219,7 +265,11 @@ class _MapPageState extends State<MapPage> {
               onPressed: toggleRecording),
           new TextField(controller: countController),
           new TextField(controller: latController),
-          new TextField(controller: longController)
+          new TextField(controller: longController),
+          new RaisedButton(
+            child: new Text("SAVE TRAIL"),
+            onPressed: () => saveTrail("Trail", polyLines),
+          )
         ],
       ),
 
