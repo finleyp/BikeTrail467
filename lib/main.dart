@@ -74,7 +74,7 @@ class _MapPageState extends State<MapPage> {
   Directory dir;
   String fileName = "Trails.json";
   bool fileExists = false;
-  Map<String, List<Polyline>> trailContent;
+  Map<String, dynamic> trailContent;
 
   showMap() {
     //this needs to be updated with gps location on start up
@@ -175,7 +175,6 @@ class _MapPageState extends State<MapPage> {
       dir = directory;
       trailsJsonFile = new File(dir.path + "/" + fileName);
       fileExists = trailsJsonFile.existsSync();
-      //the example used read as strings. I am trying to read as bytes may fail
       //HEREREREERERHERERER
       if (fileExists) this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
     });
@@ -183,7 +182,7 @@ class _MapPageState extends State<MapPage> {
 
   //createJsonFile method
   //feels redundent
-  void createJson(Map<String, List<Polyline>> tInfo, Directory dir, String fileName){
+  void createJson(Map<String, dynamic> tInfo, Directory dir, String fileName){
     File file = new File(dir.path + "/" + fileName);
     file.createSync();
     fileExists = true;
@@ -193,10 +192,11 @@ class _MapPageState extends State<MapPage> {
   //saveTrail Method
   //woo time to save
   void saveTrail(String name, List<Polyline> lines){
-    Map<String, List<Polyline>> tInfo = {name: lines};
+    Map<String, dynamic> tInfo = lines[0].toMap();
+    //lines.forEach((line) => print(line.toMap()));
     if(fileExists){
-      Map<String, List<Polyline>> jsonFileContent = json.decode(trailsJsonFile.readAsStringSync());
-      jsonFileContent.addAll(tInfo);
+      //Map<String, dynamic> jsonFileContent = json.decode(trailsJsonFile.readAsStringSync());
+      //jsonFileContent.addAll(tInfo);
       trailsJsonFile.writeAsStringSync(json.encode(tInfo));
     }else {
       createJson(tInfo, dir, fileName);
@@ -205,6 +205,7 @@ class _MapPageState extends State<MapPage> {
     print("saved");
     print(trailContent);
   }
+
 
   /*
   * This is the face of the app. It will determine what it looks like
