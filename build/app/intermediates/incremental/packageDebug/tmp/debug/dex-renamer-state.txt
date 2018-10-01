@@ -1,4 +1,0 @@
-#Wed Sep 12 16:09:19 EDT 2018
-base.0=/home/braedin/AndroidStudioProjects/mapview_test_poly/build/app/intermediates/transforms/dexMerger/debug/0
-path.0=classes.dex
-renamed.0=classes.dex
