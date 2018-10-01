@@ -20,11 +20,12 @@
           <value>
             <list>
               <option value="$USER_HOME$/flutter/packages/flutter/lib" />
+
             </list>
           </value>
         </entry>
         <entry key="geolocator">
-          <value>
+ <value>
             <list>
               <option value="$USER_HOME$/flutter/.pub-cache/hosted/pub.dartlang.org/geolocator-2.0.1/lib" />
             </list>
@@ -69,6 +70,20 @@
           <value>
             <list>
               <option value="$USER_HOME$/flutter/.pub-cache/hosted/pub.dartlang.org/permission_handler-2.0.0/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="path_provider">
+          <value>
+            <list>
+              <option value="C:/src/flutter/.pub-cache/hosted/pub.dartlang.org/path_provider-0.4.1/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="permission_handler">
+          <value>
+            <list>
+              <option value="C:/src/flutter/.pub-cache/hosted/pub.dartlang.org/permission_handler-2.0.0/lib" />
             </list>
           </value>
         </entry>

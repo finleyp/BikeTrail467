@@ -5,6 +5,9 @@ import 'package:map_view/polyline.dart';
 import 'package:map_view/figure_joint_type.dart';
 import 'package:map_view/location.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'dart:convert';
 import 'Constants.dart';
 import 'SettingsMenu.dart';
 
@@ -13,6 +16,7 @@ import 'SettingsMenu.dart';
 var api_key = "AIzaSyBZodZXTiZIxcz6iBwL076yNEq_11769Fo";
 
 List<Polyline> polyLines = new List();
+List<Polyline> loadLines = new List();
 
 MapView mapView = new MapView();
 
@@ -40,6 +44,13 @@ Polyline newLine = new Polyline(
     color: Colors.blue,
     jointType: FigureJointType.round);
 
+Polyline loadLine = new Polyline(
+    "1",
+    <Location>[
+    ],
+    width: 15.0,
+    color: Colors.black,
+    jointType: FigureJointType.round);
 
 void main(){
   MapView.setApiKey(api_key);
@@ -72,6 +83,13 @@ class _MapPageState extends State<MapPage> {
 
   List<Polyline> polyLine = new List();
 
+  //save stuff
+  File trailsJsonFile;
+  Directory dir;
+  String fileName = "Trails.json";
+  bool fileExists = false;
+  Map<String, dynamic> trailContent;
+
   showMap() {
     //this needs to be updated with gps location on start up
     //mapviewtype terrain currently, can be changed to satellite or normal
@@ -85,6 +103,8 @@ class _MapPageState extends State<MapPage> {
         showUserLocation: true,
         title: "This is a title"));
     mapView.zoomToFit(padding: 50);
+    mapView.setPolylines(loadLines);
+
 
   }
 
@@ -157,8 +177,12 @@ class _MapPageState extends State<MapPage> {
 
           //Update lines on map
           mapView.setPolylines(polyLines);
+          //mapView.setPolylines(loadLines);
 
-        });
+            });
+
+
+
   }
 
   String convertSpeed(var speed){
@@ -204,8 +228,67 @@ class _MapPageState extends State<MapPage> {
     staticMapUri = staticMapProvider.getStaticUri(
         new Location(42.9634, -85.6681), 12,
         height: 400, width: 900, mapType: StaticMapViewType.terrain);
+    getApplicationDocumentsDirectory().then((Directory directory){
+      dir = directory;
+      trailsJsonFile = new File(dir.path + "/" + fileName);
+      fileExists = trailsJsonFile.existsSync();
+      //HEREREREERERHERERER
+      //Later when we are loading more than one file this will need to be moved into the load method and trailsJsonFile will need to be the name of the file we want.
+      if (fileExists) this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
+    });
   }
 
+  //createJsonFile method
+  //feels redundent
+  void createJson(Map<String, dynamic> tInfo, Directory dir, String fileName){
+    File file = new File(dir.path + "/" + fileName);
+    file.createSync();
+    fileExists = true;
+    file.writeAsStringSync(json.encode(tInfo));
+  }
+
+  //saveTrail Method
+  //woo time to save
+  void saveTrail(String name, List<Polyline> lines){
+    if(count > 1) {
+      Map<String, dynamic> tInfo = lines[0].toMap();
+      //lines.forEach((line) => print(line.toMap()));
+      if (fileExists) {
+        //Map<String, dynamic> jsonFileContent = json.decode(trailsJsonFile.readAsStringSync());
+        //jsonFileContent.addAll(tInfo);
+        print("Ha found you scrub");
+        trailsJsonFile.writeAsStringSync(json.encode(tInfo));
+      } else {
+        createJson(tInfo, dir, fileName);
+      }
+      this.setState(() =>
+      trailContent = json.decode(trailsJsonFile.readAsStringSync()));
+      print("saved");
+      print(trailContent);
+    }
+  }
+
+  void buildFromJson(){
+    if(trailContent.isNotEmpty){
+        //So when you do a map of a polyline it makes the location a map
+        //we need to get the map form the map to get the list
+        List<Location> points = [];
+        loadLines = [];
+        for(var pointMap in trailContent["points"]){
+          //can probs reduce to one line later
+          Location temp = Location.fromMapFull(pointMap);
+          points.add(temp);
+         // print(temp);
+        }
+        print(points);
+        loadLine = new Polyline(trailContent["id"],points);
+        print(loadLine.points);
+        loadLines.add(loadLine);
+      mapView.setPolylines(loadLines);
+      print(loadLines.toString());
+      print(loadLines[0].points.toString());
+    }
+  }
   /*
   * This is the face of the app. It will determine what it looks like
   * from the app bar at the top, to each column that is placed below it
@@ -282,7 +365,13 @@ class _MapPageState extends State<MapPage> {
           new TextField(controller: latController),
           new TextField(controller: longController),
           new TextField(controller: speedController),
-          new TextField(controller: altitudeController)
+          new TextField(controller: altitudeController),
+          new RaisedButton(
+            child:  Text("SAVE TRAIL"),
+            onPressed: () => saveTrail("Trail", polyLines),),
+          new RaisedButton(
+            child: new Text("LOAD TRAIL"),
+            onPressed: () => buildFromJson(),)
         ],
       ),
 
