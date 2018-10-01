@@ -8,6 +8,8 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
+import 'Constants.dart';
+import 'SettingsMenu.dart';
 
 
 //api_key for google maps
@@ -19,12 +21,16 @@ List<Polyline> loadLines = new List();
 MapView mapView = new MapView();
 
 bool isRecording = false;
+bool isMetricSpeed = false;
+bool isMetricDist = false;
 
 StreamSubscription<Position> positionStream;
 
 var countController = new TextEditingController();
 var latController = new TextEditingController();
 var longController = new TextEditingController();
+var speedController = new TextEditingController();
+var altitudeController = new TextEditingController();
 var count = 0;
 
 
@@ -105,6 +111,12 @@ class _MapPageState extends State<MapPage> {
 
   void toggleRecording() {
 
+    //Get correct units
+    SettingsMenu settings = new SettingsMenu();
+
+    isMetricSpeed = settings.isMetricSpeed;
+    isMetricDist = settings.isMeticDist;
+
     //toggle the isRecording boolean
     setState(() => isRecording = !isRecording);
 
@@ -131,12 +143,16 @@ class _MapPageState extends State<MapPage> {
               position == null ? 'Unknown' : position.latitude.toString() + ', ' +
                   position.longitude.toString());
 
+          //Unit conversions, rounding, and string building
+          String speed = convertSpeed(position.speed);
+          String altitude = convertAlt(position.altitude);
+
           //convert the Position object to Location object to be usable with map_view
-          Location loc = new Location(position.latitude, position.longitude);
+          Location loc = new Location.full(position.latitude, position.longitude, 0,
+                          position.altitude, position.speed, position.heading, 0.0, 0.0);
 
           //Add point to polylines object
           newLine.points.add(loc);
-
 
 
           count++;
@@ -145,6 +161,8 @@ class _MapPageState extends State<MapPage> {
           latController.text = "Latitude: " + loc.latitude.toString();
           //position.latitude.toString();
           longController.text = "Longitude: " + loc.longitude.toString();
+          speedController.text = "Speed: $speed";
+          altitudeController.text = "Altitude: $altitude";
 
 
 
@@ -165,6 +183,34 @@ class _MapPageState extends State<MapPage> {
 
 
 
+  }
+
+  String convertSpeed(var speed){
+
+    if(isMetricSpeed) {
+      //Convert from Mps to Kph -- 1 mps = 3.6 kph
+      double speedKph = speed * 3.6;
+      return speedKph.toStringAsFixed(1) + " kph";
+
+    } else {
+      //Convert to Mph -- 1 mps = 2.236934 mph
+      double speedMph = speed * 2.236934;
+      return speedMph.toStringAsFixed(1) + " mph";
+
+    }
+  }
+
+  String convertAlt(var alt){
+    if(isMetricDist) {
+      //return modified string
+      return alt.toStringAsFixed(0) + " meters";
+
+    } else {
+      //Convert to feet -- 1 meter = 3.28084 feet
+      double altFt = alt * 3.28084;
+      return altFt.toStringAsFixed(0) + " feet";
+
+    }
   }
 
 
@@ -254,11 +300,26 @@ class _MapPageState extends State<MapPage> {
     countController.text = "Update Count: 0";
     latController.text = "Latitude: 0";
     longController.text = "Longitude: 0";
+    speedController.text = "Speed: 0";
+    altitudeController.text = "Altitude: 0";
 
     return new Scaffold(
       //appBar is the bar displayed at the top of the screen
       appBar: AppBar(
         title: Text("Bike Trail"),
+        actions: <Widget>[
+          PopupMenuButton<String>(
+            onSelected: choiceAction,
+            itemBuilder: (BuildContext context){
+              return Constants.choices.map((String choice){
+                return PopupMenuItem<String>(
+                  value: choice,
+                  child: Text(choice),
+                );
+              }).toList();
+            },
+          )
+        ],
       ),
       body: new Column(
 
@@ -303,6 +364,8 @@ class _MapPageState extends State<MapPage> {
           new TextField(controller: countController),
           new TextField(controller: latController),
           new TextField(controller: longController),
+          new TextField(controller: speedController),
+          new TextField(controller: altitudeController),
           new RaisedButton(
             child:  Text("SAVE TRAIL"),
             onPressed: () => saveTrail("Trail", polyLines),),
@@ -314,4 +377,12 @@ class _MapPageState extends State<MapPage> {
 
     );
   }
+
+  void choiceAction(String choice) {
+    if (choice == Constants.Settings){
+      Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsMenu()),
+      );
+    }
+  }
+
 }
