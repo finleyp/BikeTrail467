@@ -1,4 +1,4 @@
-#Sun Sep 30 00:55:53 EDT 2018
+#Mon Oct 01 16:02:34 EDT 2018
 base.0=C\:\\Users\\Patton Finley\\AndroidStudioProjects\\BikeTrail467\\build\\app\\intermediates\\transforms\\dexMerger\\debug\\0
 path.0=classes.dex
 renamed.0=classes.dex

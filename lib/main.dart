@@ -97,6 +97,8 @@ class _MapPageState extends State<MapPage> {
         showUserLocation: true,
         title: "This is a title"));
     mapView.zoomToFit(padding: 50);
+    mapView.setPolylines(loadLines);
+
 
   }
 
@@ -157,7 +159,7 @@ class _MapPageState extends State<MapPage> {
 
           //Update lines on map
           mapView.setPolylines(polyLines);
-          mapView.setPolylines(loadLines);
+
 
             });
 
@@ -235,7 +237,7 @@ class _MapPageState extends State<MapPage> {
         print(points);
         loadLine = new Polyline(trailContent["id"],points);
         print(loadLine.points);
-        loadLines.add(newLine);
+        loadLines.add(loadLine);
       mapView.setPolylines(loadLines);
       print(loadLines.toString());
       print(loadLines[0].points.toString());
