@@ -159,7 +159,7 @@ class _MapPageState extends State<MapPage> {
 
           //Update lines on map
           mapView.setPolylines(polyLines);
-
+          mapView.setPolylines(loadLines);
 
             });
 
