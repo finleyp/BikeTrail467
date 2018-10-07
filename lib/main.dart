@@ -7,6 +7,7 @@ import 'package:map_view/location.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import 'Constants.dart';
 import 'SettingsMenu.dart';
@@ -31,7 +32,9 @@ var latController = new TextEditingController();
 var longController = new TextEditingController();
 var speedController = new TextEditingController();
 var altitudeController = new TextEditingController();
+var trailNameController = new TextEditingController();
 var count = 0;
+var uuid = new Uuid();
 
 
 
@@ -102,9 +105,17 @@ class _MapPageState extends State<MapPage> {
 
         showUserLocation: true,
         title: "This is a title"));
-    mapView.zoomToFit(padding: 50);
-    mapView.setPolylines(loadLines);
 
+    //mapView.zoomToFit(padding: 50);
+
+    //Show polylines on map load
+    mapView.onMapReady.listen((_) {
+      loadLines.clear();
+      buildFromJson();
+
+      print('Setting Polylines from local storage_________________________________________');
+
+    });
 
   }
 
@@ -230,11 +241,11 @@ class _MapPageState extends State<MapPage> {
         height: 400, width: 900, mapType: StaticMapViewType.terrain);
     getApplicationDocumentsDirectory().then((Directory directory){
       dir = directory;
-      trailsJsonFile = new File(dir.path + "/" + fileName);
-      fileExists = trailsJsonFile.existsSync();
+      //trailsJsonFile = new File(dir.path + "/" + fileName);
+      //fileExists = trailsJsonFile.existsSync();
       //HEREREREERERHERERER
       //Later when we are loading more than one file this will need to be moved into the load method and trailsJsonFile will need to be the name of the file we want.
-      if (fileExists) this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
+//      if (fileExists) this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
     });
   }
 
@@ -249,45 +260,79 @@ class _MapPageState extends State<MapPage> {
 
   //saveTrail Method
   //woo time to save
-  void saveTrail(String name, List<Polyline> lines){
+  void saveTrail(String trailName, List<Polyline> lines){
+
+    String id = uuid.v1();
+    String fileName = "trail-" + trailName + "-" + id;
+
     if(count > 1) {
       Map<String, dynamic> tInfo = lines[0].toMap();
       //lines.forEach((line) => print(line.toMap()));
-      if (fileExists) {
-        //Map<String, dynamic> jsonFileContent = json.decode(trailsJsonFile.readAsStringSync());
-        //jsonFileContent.addAll(tInfo);
-        print("Ha found you scrub");
-        trailsJsonFile.writeAsStringSync(json.encode(tInfo));
-      } else {
-        createJson(tInfo, dir, fileName);
-      }
+
+      createJson(tInfo, dir, fileName);
+
       this.setState(() =>
       trailContent = json.decode(trailsJsonFile.readAsStringSync()));
-      print("saved");
+      print("saved: $fileName");
       print(trailContent);
+
+      //Clear the polyLines object and set fileExists back to false
+      polyLines.clear();
+      newLine.points.clear();
+
+      print('Clear Polylines');
+
     }
   }
 
   void buildFromJson(){
-    if(trailContent.isNotEmpty){
-        //So when you do a map of a polyline it makes the location a map
-        //we need to get the map form the map to get the list
-        List<Location> points = [];
-        loadLines = [];
-        for(var pointMap in trailContent["points"]){
-          //can probs reduce to one line later
-          Location temp = Location.fromMapFull(pointMap);
-          points.add(temp);
-         // print(temp);
+
+    getApplicationDocumentsDirectory().then((Directory directory){
+      dir = directory;
+      //trailsJsonFile = new File(dir.path + "/" + fileName);
+
+      List<FileSystemEntity> files = dir.listSync().toList();
+
+      //print(files);
+
+      files.forEach((entity) {
+        if (entity is File && entity.toString().contains('trail-')){
+
+          print('_________' + entity.toString());
+
+          trailsJsonFile = entity;
+
+
+          //HEREREREERERHERERER
+          //Later when we are loading more than one file this will need to be moved into the load method and trailsJsonFile will need to be the name of the file we want.
+          //if (fileExists) this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
+
+          trailContent = json.decode(trailsJsonFile.readAsStringSync());
+
+          if(trailContent.isNotEmpty){
+            //So when you do a map of a polyline it makes the location a map
+            //we need to get the map form the map to get the list
+            List<Location> points = [];
+
+            //loadLines = [];
+            for(var pointMap in trailContent["points"]){
+              //can probs reduce to one line later
+              Location temp = Location.fromMapFull(pointMap);
+              points.add(temp);
+            }
+            Polyline line = new Polyline(trailContent["id"],
+                points,
+                width: 15.0,
+                color: Colors.red,
+                jointType: FigureJointType.round);
+
+            loadLines.add(line);
+            
+          }
         }
-        print(points);
-        loadLine = new Polyline(trailContent["id"],points);
-        print(loadLine.points);
-        loadLines.add(loadLine);
+      });
       mapView.setPolylines(loadLines);
-      print(loadLines.toString());
-      print(loadLines[0].points.toString());
-    }
+    });
   }
   /*
   * This is the face of the app. It will determine what it looks like
@@ -325,36 +370,10 @@ class _MapPageState extends State<MapPage> {
 
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[
-          new Container(
-            //height will set the column at  certain height from the top of the
-            //screen defualt height is right below last column or appbar
-            //height: 300
-            child: new Stack(
-              children: <Widget>[
-                new Center(
-                  child: Container(
-                    child: new Text(
-                      "Error loading map",
-                      textAlign: TextAlign.center,
-                    ),
-                    padding: const EdgeInsets.all(20.0),
-                  ),
-                ),
-                new InkWell(
-                  child: new Center(
-                    child: new Image.network(staticMapUri.toString()),
-                  ),
-                  onTap: showMap,
-                )
-              ],
-            ),
-          ),
-          new Container(
-            padding: new EdgeInsets.only(top: 10.0),
-            child: new Text(
-              "Tap the map to interact",
-              style: new TextStyle(fontWeight: FontWeight.bold),
-            ),
+          new RaisedButton(
+            child: Text('Show Map'),
+            elevation: 2.0,
+            onPressed: showMap
           ),
           new RaisedButton(
               child: isRecording ? Text("Stop Recording") : Text("Start Recording"),
@@ -368,13 +387,53 @@ class _MapPageState extends State<MapPage> {
           new TextField(controller: altitudeController),
           new RaisedButton(
             child:  Text("SAVE TRAIL"),
-            onPressed: () => saveTrail("Trail", polyLines),),
+            onPressed: _showDialog),
           new RaisedButton(
             child: new Text("LOAD TRAIL"),
             onPressed: () => buildFromJson(),)
         ],
       ),
 
+    );
+  }
+
+  //Have user enter trail information
+  _showDialog() async {
+    await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return new AlertDialog(
+          contentPadding: const EdgeInsets.all(16.0),
+          content: new Row(
+            children: <Widget>[
+              new Expanded(
+                child: new TextField(
+                  autofocus: true,
+                  controller: trailNameController,
+                  decoration: new InputDecoration(
+                      labelText: 'Trail Information', hintText: 'Trail Name', contentPadding: const EdgeInsets.only(top: 16.0)),
+                ),
+              )
+            ],
+          ),
+          actions: <Widget>[
+            new FlatButton(
+                child: const Text('Cancel'),
+                onPressed: () {
+                  Navigator.pop(context);
+                }),
+            new FlatButton(
+                child: const Text('Save'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  print(trailNameController.text);
+                  saveTrail(trailNameController.text, polyLines);
+                  trailNameController.text = "";
+                })
+          ],
+        );
+      },
     );
   }
 
