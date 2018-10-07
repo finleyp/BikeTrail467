@@ -327,7 +327,7 @@ class _MapPageState extends State<MapPage> {
                 jointType: FigureJointType.round);
 
             loadLines.add(line);
-            
+
           }
         }
       });
@@ -387,10 +387,10 @@ class _MapPageState extends State<MapPage> {
           new TextField(controller: altitudeController),
           new RaisedButton(
             child:  Text("SAVE TRAIL"),
-            onPressed: _showDialog),
-          new RaisedButton(
-            child: new Text("LOAD TRAIL"),
-            onPressed: () => buildFromJson(),)
+              onPressed: _showDialog),
+          //new RaisedButton(
+           // child: new Text("LOAD TRAIL"),
+          //  onPressed: () => buildFromJson(),)
         ],
       ),
 
