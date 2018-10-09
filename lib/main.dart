@@ -11,6 +11,8 @@ import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import 'Constants.dart';
 import 'SettingsMenu.dart';
+import 'SavedTrails.dart';
+import 'Trail.dart';
 
 
 //api_key for google maps
@@ -18,6 +20,8 @@ var api_key = "AIzaSyBZodZXTiZIxcz6iBwL076yNEq_11769Fo";
 
 List<Polyline> polyLines = new List();
 List<Polyline> loadLines = new List();
+
+List<Trail> trails = new List();
 
 MapView mapView = new MapView();
 
@@ -247,6 +251,9 @@ class _MapPageState extends State<MapPage> {
       //Later when we are loading more than one file this will need to be moved into the load method and trailsJsonFile will need to be the name of the file we want.
 //      if (fileExists) this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
     });
+
+    //Get saved trails on open
+    buildFromJson();
   }
 
   //createJsonFile method
@@ -285,6 +292,28 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  void generateTrails(String id, String name, List<Location> points, Polyline polyline, String description) {
+
+    bool exists = false;
+
+    trails.forEach((element) {
+
+      if (element.id == id){
+        exists = true;
+      }
+
+    });
+
+    if (!exists) {
+
+      var staticMapUri = staticMapProvider.getStaticUriWithPath(points,
+          width: 500, height: 200, maptype: StaticMapViewType.terrain);
+
+      trails.add(new Trail(id, name, points, polyline, staticMapUri, description));
+    }
+
+  }
+
   void buildFromJson(){
 
     getApplicationDocumentsDirectory().then((Directory directory){
@@ -301,6 +330,9 @@ class _MapPageState extends State<MapPage> {
           print('_________' + entity.toString());
 
           trailsJsonFile = entity;
+
+          var id = entity.toString().split("/")[6];
+          var name = entity.toString().split("-")[1];
 
 
           //HEREREREERERHERERER
@@ -328,12 +360,20 @@ class _MapPageState extends State<MapPage> {
 
             loadLines.add(line);
 
+            generateTrails(id, name, points, line, "Temp Description");
+
           }
         }
       });
       mapView.setPolylines(loadLines);
     });
   }
+
+  void deleteFile(String file){
+
+  }
+
+
   /*
   * This is the face of the app. It will determine what it looks like
   * from the app bar at the top, to each column that is placed below it
@@ -387,7 +427,15 @@ class _MapPageState extends State<MapPage> {
           new TextField(controller: altitudeController),
           new RaisedButton(
             child:  Text("SAVE TRAIL"),
-              onPressed: _showDialog),
+              onPressed: _showDialog
+          ),
+          new RaisedButton(
+            child: Text("Saved Trails"),
+              onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder:
+               (context) => SavedTrails(trails: trails)));
+              }
+          ),
           //new RaisedButton(
            // child: new Text("LOAD TRAIL"),
           //  onPressed: () => buildFromJson(),)

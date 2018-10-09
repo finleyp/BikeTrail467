@@ -58,9 +58,11 @@ packages:
   map_view:
     dependency: "direct main"
     description:
-      name: map_view
-      url: "https://pub.dartlang.org"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: d8404864e49bde0ab6b205263deb95de97cd6887
+      url: "https://github.com/samlcar23/flutter_google_map_view.git"
+    source: git
     version: "0.0.14"
   matcher:
     dependency: transitive
