@@ -331,7 +331,7 @@ class _MapPageState extends State<MapPage> {
 
           trailsJsonFile = entity;
 
-          var id = entity.toString().split("/")[6];
+          var id = entity.toString().split("/")[6].split("'")[0];
           var name = entity.toString().split("-")[1];
 
 
