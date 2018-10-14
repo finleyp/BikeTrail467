@@ -18,10 +18,14 @@ import 'Trail.dart';
 //api_key for google maps
 var api_key = "AIzaSyBZodZXTiZIxcz6iBwL076yNEq_11769Fo";
 
+var geolocator = Geolocator();
+
 List<Polyline> polyLines = new List();
 List<Polyline> loadLines = new List();
 
 List<Trail> trails = new List();
+
+Location onLoadLoc;
 
 MapView mapView = new MapView();
 
@@ -97,7 +101,7 @@ class _MapPageState extends State<MapPage> {
   bool fileExists = false;
   Map<String, dynamic> trailContent;
 
-  showMap() {
+  showMap(Location location, double zoom) async {
     //this needs to be updated with gps location on start up
     //mapviewtype terrain currently, can be changed to satellite or normal
     //needs a cool title eventually
@@ -105,15 +109,24 @@ class _MapPageState extends State<MapPage> {
     mapView.show(new MapOptions(
         mapViewType: MapViewType.normal,
         initialCameraPosition:
-        new CameraPosition(new Location(42.9634, -85.6681), 12.0),
+        new CameraPosition(Locations.centerOfUSA, 0.0),
 
         showUserLocation: true,
         title: "This is a title"));
+
+
+    if (location == null) {
+      Position pos = await geolocator.getCurrentPosition();
+      location = new Location(pos.latitude, pos.longitude);
+    }
+
+
 
     //mapView.zoomToFit(padding: 50);
 
     //Show polylines on map load
     mapView.onMapReady.listen((_) {
+      mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
       loadLines.clear();
       buildFromJson();
 
@@ -146,7 +159,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   void getPositionStream() {
-    var geolocator = Geolocator();
+
     var locationOptions = LocationOptions(
         accuracy: LocationAccuracy.best, distanceFilter: 1);
 
@@ -252,8 +265,16 @@ class _MapPageState extends State<MapPage> {
 //      if (fileExists) this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
     });
 
+    getCurrentLocation();
+
     //Get saved trails on open
     buildFromJson();
+  }
+
+  //Gets the current location on load
+  void getCurrentLocation() async{
+    Position pos = await geolocator.getCurrentPosition();
+    onLoadLoc = new Location(pos.latitude, pos.longitude);
   }
 
   //createJsonFile method
@@ -371,6 +392,32 @@ class _MapPageState extends State<MapPage> {
 
   void deleteFile(String file){
 
+    getApplicationDocumentsDirectory().then((Directory directory) {
+      dir = directory;
+
+      List<FileSystemEntity> files = dir.listSync().toList();
+
+      //print(files);
+
+      files.forEach((entity) {
+        if (entity is File && entity.toString().contains(file)) {
+          entity.deleteSync();
+        }
+      });
+    });
+
+
+  }
+
+  void savedTrailsOption(String choice, Trail trail) {
+
+    if (choice == '0'){
+      int middle = (trail.points.length / 2).round();
+      showMap(trail.points[middle], 14.0);
+    } else if (choice == '1') {
+      deleteFile(trail.id);
+    }
+
   }
 
 
@@ -413,7 +460,7 @@ class _MapPageState extends State<MapPage> {
           new RaisedButton(
             child: Text('Show Map'),
             elevation: 2.0,
-            onPressed: showMap
+            onPressed: () => showMap(null, 12.0)
           ),
           new RaisedButton(
               child: isRecording ? Text("Stop Recording") : Text("Start Recording"),
@@ -433,7 +480,7 @@ class _MapPageState extends State<MapPage> {
             child: Text("Saved Trails"),
               onPressed: () {
               Navigator.push(context, MaterialPageRoute(builder:
-               (context) => SavedTrails(trails: trails)));
+               (context) => SavedTrails(trails: trails, callback: (str, trail) => savedTrailsOption(str, trail))));
               }
           ),
           //new RaisedButton(
