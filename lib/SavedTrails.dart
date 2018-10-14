@@ -67,7 +67,7 @@ class SavedTrailsState extends State<SavedTrails> {
                         children: <Widget>[
                           new FlatButton(
                             child: const Text('View Map'),
-                            onPressed: () => deleteTrail(widget.trails[index]),
+                            onPressed: () => showOnMap(widget.trails[index]),
                           ),
                         ],
                       ),
