@@ -101,7 +101,7 @@ class _MapPageState extends State<MapPage> {
   bool fileExists = false;
   Map<String, dynamic> trailContent;
 
-  showMap(Location location, double zoom) async {
+  showMap(List<Location> list, Location location, double zoom) async {
     //this needs to be updated with gps location on start up
     //mapviewtype terrain currently, can be changed to satellite or normal
     //needs a cool title eventually
@@ -119,17 +119,30 @@ class _MapPageState extends State<MapPage> {
       Position pos = await geolocator.getCurrentPosition();
       location = new Location(pos.latitude, pos.longitude);
       mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
+      buildFromJson();
     }else {
       mapView.onMapReady.listen((Null _) {
         mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
         loadLines.clear();
-        buildFromJson();
+        buildSingle(list);
 
         print('Setting Polylines from local storage_________________________________________');
 
       });
     }
 
+  }
+
+  void buildSingle(List<Location> list){
+    Polyline line = new Polyline(
+        "1",
+        list,
+        width: 15.0,
+        color: Colors.black,
+        jointType: FigureJointType.round);
+
+    loadLines.add(line);
+    mapView.setPolylines(loadLines);
   }
 
   void toggleRecording() {
@@ -304,7 +317,10 @@ class _MapPageState extends State<MapPage> {
       newLine.points.clear();
 
       print('Clear Polylines');
-
+      var staticMapUri = staticMapProvider.getStaticUriWithPath(lines[0].points,
+          width: 500, height: 200, maptype: StaticMapViewType.terrain);
+      Trail nTrail = new Trail(fileName, trailName, lines[0].points, lines[0], staticMapUri, "");
+      trails.add(nTrail);
     }
   }
 
@@ -408,7 +424,7 @@ class _MapPageState extends State<MapPage> {
 
     if (choice == '0'){
       int middle = (trail.points.length / 2).round();
-      showMap(trail.points[middle], 14.0);
+      showMap(trail.points, trail.points[middle], 14.0);
     } else if (choice == '1') {
       deleteFile(trail.id);
     }
@@ -455,7 +471,7 @@ class _MapPageState extends State<MapPage> {
           new RaisedButton(
             child: Text('Show Map'),
             elevation: 2.0,
-            onPressed: () => showMap(null, 12.0)
+            onPressed: () => showMap(null, null, 12.0)
           ),
           new RaisedButton(
               child: isRecording ? Text("Stop Recording") : Text("Start Recording"),
