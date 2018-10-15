@@ -105,7 +105,7 @@ class _MapPageState extends State<MapPage> {
     //this needs to be updated with gps location on start up
     //mapviewtype terrain currently, can be changed to satellite or normal
     //needs a cool title eventually
-
+    mapView = new MapView();
     mapView.show(new MapOptions(
         mapViewType: MapViewType.normal,
         initialCameraPosition:
@@ -118,24 +118,19 @@ class _MapPageState extends State<MapPage> {
     if (location == null) {
       Position pos = await geolocator.getCurrentPosition();
       location = new Location(pos.latitude, pos.longitude);
+      mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
+    }else {
+      mapView.onMapReady.listen((Null _) {
+        mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
+        loadLines.clear();
+        buildFromJson();
+
+        print('Setting Polylines from local storage_________________________________________');
+
+      });
     }
 
-
-
-    //mapView.zoomToFit(padding: 50);
-
-    //Show polylines on map load
-    mapView.onMapReady.listen((_) {
-      mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
-      loadLines.clear();
-      buildFromJson();
-
-      print('Setting Polylines from local storage_________________________________________');
-
-    });
-
   }
-
 
   void toggleRecording() {
 
@@ -376,7 +371,7 @@ class _MapPageState extends State<MapPage> {
             Polyline line = new Polyline(trailContent["id"],
                 points,
                 width: 15.0,
-                color: Colors.red,
+                color: Colors.green,
                 jointType: FigureJointType.round);
 
             loadLines.add(line);
