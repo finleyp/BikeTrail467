@@ -312,15 +312,23 @@ class _MapPageState extends State<MapPage> {
       print("saved: $fileName");
       print(trailContent);
 
+//      print("LOOK HERE: " + lines[0].points.toString());
+//
+//      List<Location> points = lines[0].points;
+//
+//      //Add to the saved trail list
+//      generateTrails(fileName, trailName, points, lines[0], "Trail");
+
       //Clear the polyLines object and set fileExists back to false
       polyLines.clear();
       newLine.points.clear();
+      count = 0;
+      countController.text = "Update Count: " + count.toString();
 
       print('Clear Polylines');
-      var staticMapUri = staticMapProvider.getStaticUriWithPath(lines[0].points,
-          width: 500, height: 200, maptype: StaticMapViewType.terrain);
-      Trail nTrail = new Trail(fileName, trailName, lines[0].points, lines[0], staticMapUri, "");
-      trails.add(nTrail);
+
+      buildFromJson();
+
     }
   }
 
