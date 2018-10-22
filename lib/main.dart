@@ -208,7 +208,7 @@ class _MapPageState extends State<MapPage> {
           latController.text = "Latitude: " + loc.latitude.toString();
           //position.latitude.toString();
           longController.text = "Longitude: " + loc.longitude.toString();
-          speedController.text = "Speed: $speed";
+          speedController.text = speed;
           altitudeController.text = "Altitude: $altitude";
 
 
@@ -237,12 +237,12 @@ class _MapPageState extends State<MapPage> {
     if(isMetricSpeed) {
       //Convert from Mps to Kph -- 1 mps = 3.6 kph
       double speedKph = speed * 3.6;
-      return speedKph.toStringAsFixed(1) + " kph";
+      return speedKph.toStringAsFixed(1);
 
     } else {
       //Convert to Mph -- 1 mps = 2.236934 mph
       double speedMph = speed * 2.236934;
-      return speedMph.toStringAsFixed(1) + " mph";
+      return speedMph.toStringAsFixed(1);
 
     }
   }
@@ -250,12 +250,12 @@ class _MapPageState extends State<MapPage> {
   String convertAlt(var alt){
     if(isMetricDist) {
       //return modified string
-      return alt.toStringAsFixed(0) + " meters";
+      return alt.toStringAsFixed(0);
 
     } else {
       //Convert to feet -- 1 meter = 3.28084 feet
       double altFt = alt * 3.28084;
-      return altFt.toStringAsFixed(0) + " feet";
+      return altFt.toStringAsFixed(0);
 
     }
   }
