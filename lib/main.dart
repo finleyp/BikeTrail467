@@ -745,7 +745,7 @@ class _MapPageState extends State<MapPage> {
               new RaisedButton(
                   child: Text('Map'),
                   elevation: 2.0,
-                  onPressed: () => showMap(null, 12.0)
+                  onPressed: () => showMap(null, null,12.0)
               ),
               new RaisedButton(
                   child: Text("Trails"),
