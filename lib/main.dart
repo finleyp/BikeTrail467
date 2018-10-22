@@ -11,13 +11,21 @@ import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import 'Constants.dart';
 import 'SettingsMenu.dart';
+import 'SavedTrails.dart';
+import 'Trail.dart';
 
 
 //api_key for google maps
 var api_key = "AIzaSyBZodZXTiZIxcz6iBwL076yNEq_11769Fo";
 
+var geolocator = Geolocator();
+
 List<Polyline> polyLines = new List();
 List<Polyline> loadLines = new List();
+
+List<Trail> trails = new List();
+
+Location onLoadLoc;
 
 MapView mapView = new MapView();
 
@@ -27,12 +35,23 @@ bool isMetricDist = false;
 
 StreamSubscription<Position> positionStream;
 
+//debug
 var countController = new TextEditingController();
 var latController = new TextEditingController();
 var longController = new TextEditingController();
-var speedController = new TextEditingController();
 var altitudeController = new TextEditingController();
+
+
+
+var speedController = new TextEditingController();
+var timeController = new TextEditingController();
+var leftDistanceController = new TextEditingController();
+var traveledDistanceController = new TextEditingController();
+var aveSpeedController = new TextEditingController();
+
 var trailNameController = new TextEditingController();
+
+
 var count = 0;
 var uuid = new Uuid();
 
@@ -93,7 +112,7 @@ class _MapPageState extends State<MapPage> {
   bool fileExists = false;
   Map<String, dynamic> trailContent;
 
-  showMap() {
+  showMap(Location location, double zoom) async {
     //this needs to be updated with gps location on start up
     //mapviewtype terrain currently, can be changed to satellite or normal
     //needs a cool title eventually
@@ -101,15 +120,24 @@ class _MapPageState extends State<MapPage> {
     mapView.show(new MapOptions(
         mapViewType: MapViewType.normal,
         initialCameraPosition:
-        new CameraPosition(new Location(42.9634, -85.6681), 12.0),
+        new CameraPosition(Locations.centerOfUSA, 0.0),
 
         showUserLocation: true,
         title: "This is a title"));
+
+
+    if (location == null) {
+      Position pos = await geolocator.getCurrentPosition();
+      location = new Location(pos.latitude, pos.longitude);
+    }
+
+
 
     //mapView.zoomToFit(padding: 50);
 
     //Show polylines on map load
     mapView.onMapReady.listen((_) {
+      mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
       loadLines.clear();
       buildFromJson();
 
@@ -142,7 +170,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   void getPositionStream() {
-    var geolocator = Geolocator();
+
     var locationOptions = LocationOptions(
         accuracy: LocationAccuracy.best, distanceFilter: 1);
 
@@ -247,6 +275,17 @@ class _MapPageState extends State<MapPage> {
       //Later when we are loading more than one file this will need to be moved into the load method and trailsJsonFile will need to be the name of the file we want.
 //      if (fileExists) this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
     });
+
+    getCurrentLocation();
+
+    //Get saved trails on open
+    buildFromJson();
+  }
+
+  //Gets the current location on load
+  void getCurrentLocation() async{
+    Position pos = await geolocator.getCurrentPosition();
+    onLoadLoc = new Location(pos.latitude, pos.longitude);
   }
 
   //createJsonFile method
@@ -285,6 +324,28 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  void generateTrails(String id, String name, List<Location> points, Polyline polyline, String description) {
+
+    bool exists = false;
+
+    trails.forEach((element) {
+
+      if (element.id == id){
+        exists = true;
+      }
+
+    });
+
+    if (!exists) {
+
+      var staticMapUri = staticMapProvider.getStaticUriWithPath(points,
+          width: 500, height: 200, maptype: StaticMapViewType.terrain);
+
+      trails.add(new Trail(id, name, points, polyline, staticMapUri, description));
+    }
+
+  }
+
   void buildFromJson(){
 
     getApplicationDocumentsDirectory().then((Directory directory){
@@ -301,6 +362,9 @@ class _MapPageState extends State<MapPage> {
           print('_________' + entity.toString());
 
           trailsJsonFile = entity;
+
+          var id = entity.toString().split("/")[6].split("'")[0];
+          var name = entity.toString().split("-")[1];
 
 
           //HEREREREERERHERERER
@@ -328,12 +392,46 @@ class _MapPageState extends State<MapPage> {
 
             loadLines.add(line);
 
+            generateTrails(id, name, points, line, "Temp Description");
+
           }
         }
       });
       mapView.setPolylines(loadLines);
     });
   }
+
+  void deleteFile(String file){
+
+    getApplicationDocumentsDirectory().then((Directory directory) {
+      dir = directory;
+
+      List<FileSystemEntity> files = dir.listSync().toList();
+
+      //print(files);
+
+      files.forEach((entity) {
+        if (entity is File && entity.toString().contains(file)) {
+          entity.deleteSync();
+        }
+      });
+    });
+
+
+  }
+
+  void savedTrailsOption(String choice, Trail trail) {
+
+    if (choice == '0'){
+      int middle = (trail.points.length / 2).round();
+      showMap(trail.points[middle], 14.0);
+    } else if (choice == '1') {
+      deleteFile(trail.id);
+    }
+
+  }
+
+
   /*
   * This is the face of the app. It will determine what it looks like
   * from the app bar at the top, to each column that is placed below it
@@ -342,16 +440,24 @@ class _MapPageState extends State<MapPage> {
   *
   * */
   Widget build(BuildContext context){
+
+
+    timeController.text = "0:00:00";
+    leftDistanceController.text = "10.0";
+    traveledDistanceController.text = "0.00";
+    aveSpeedController.text = "0.00";
+
     countController.text = "Update Count: 0";
     latController.text = "Latitude: 0";
     longController.text = "Longitude: 0";
-    speedController.text = "Speed: 0";
+    speedController.text = "0";
     altitudeController.text = "Altitude: 0";
 
     return new Scaffold(
       //appBar is the bar displayed at the top of the screen
       appBar: AppBar(
         title: Text("Bike Trail"),
+        backgroundColor: Colors.black,
         actions: <Widget>[
           PopupMenuButton<String>(
             onSelected: choiceAction,
@@ -366,32 +472,306 @@ class _MapPageState extends State<MapPage> {
           )
         ],
       ),
-      body: new Column(
+      body: new Container(
+        decoration: new BoxDecoration(color: Colors.black87),
+        child: new Column(
 
-        mainAxisAlignment: MainAxisAlignment.start,
+
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: <Widget>[
-          new RaisedButton(
-            child: Text('Show Map'),
-            elevation: 2.0,
-            onPressed: showMap
+
+
+        new Container(
+        child: new Column(
+          mainAxisAlignment: MainAxisAlignment.center ,
+          crossAxisAlignment: CrossAxisAlignment.center,
+
+          children: <Widget>[
+          new Container(
+            //width: 300.0,
+            //height: 20.0,
+            //color: Colors.blue,
+            child: new TextField(
+                controller: speedController,
+                enabled: false,
+                textAlign: TextAlign.center,
+                style: new TextStyle(color: Colors.white, fontSize: 48.0, fontWeight: FontWeight.bold,  ),
+            ),
           ),
-          new RaisedButton(
-              child: isRecording ? Text("Stop Recording") : Text("Start Recording"),
-              elevation: 2.0,
-              color: isRecording ? Colors.red : Colors.green,
-              onPressed: toggleRecording),
-          new TextField(controller: countController),
-          new TextField(controller: latController),
-          new TextField(controller: longController),
-          new TextField(controller: speedController),
-          new TextField(controller: altitudeController),
-          new RaisedButton(
-            child:  Text("SAVE TRAIL"),
-              onPressed: _showDialog),
+          new Container(
+            //width: 300.0,
+            //height: 20.0,
+            //color: Colors.blue,
+            child: new Text(
+              'Current Speed(mph)',
+              textAlign: TextAlign.center,
+              style: new TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold, ),
+
+
+            ),
+          ),
+          ],
+          ),
+        ),
+
+
+ /*
+
+
+          new Container(
+            width: 150.0,
+            height: 40.0,
+            color: Colors.yellowAccent,
+            child: new Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
+                  new TextField(controller: countController),
+                  new Container(
+                    width: 150.0,
+                    height: 40.0,
+                    color: Colors.yellowAccent,
+                    child: new TextField(controller: latController),
+                  ),
+                  new Container(
+                    width: 150.0,
+                    height: 40.0,
+                    color: Colors.yellowAccent,
+                    child: new TextField(controller: longController),
+                  ),
+                ],
+
+
+
+            ),
+
+          ),
+
+*/
+
+          new Row(// upper middle
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+
+                new Container(
+                  child: new Column(
+                    mainAxisAlignment: MainAxisAlignment.center ,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+
+                    children: <Widget>[
+                      new Container(
+                        width: 150.0,
+                        height: 40.0,
+                        //color: Colors.blue,
+                        child: new TextField(
+                          controller: timeController,
+                          enabled: false,
+                          textAlign: TextAlign.center,
+                          style: new TextStyle(color: Colors.white, fontSize: 18.0,fontWeight: FontWeight.bold, ),
+                        ),
+                      ),
+                      new Container(
+                        //width: 300.0,
+                        //height: 20.0,
+                        //color: Colors.blue,
+                        child: new Text(
+                          'Time',
+                          textAlign: TextAlign.center,
+                          style: new TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold, ),
+
+
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+
+                new Container(
+                  child: new Column(
+                    mainAxisAlignment: MainAxisAlignment.center ,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+
+                    children: <Widget>[
+
+                      new Container(
+                        width: 150.0,
+                        height: 40.0,
+                        //color: Colors.yellowAccent,
+                        child: new TextField(
+                          controller: aveSpeedController,
+                          enabled: false,
+                          textAlign: TextAlign.center,
+                          style: new TextStyle(color: Colors.white, fontSize: 18.0,fontWeight: FontWeight.bold, ),
+                        ),
+                      ),
+
+                      new Container(
+                        //width: 300.0,
+                        //height: 20.0,
+                        //color: Colors.blue,
+                        child: new Text(
+                          'Average Speed(mph)',
+                          textAlign: TextAlign.center,
+                          style: new TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold, ),
+
+
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+
+              ],
+          ),
+
+
+
+
+
+          new Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+
+              new Container(
+                child: new Column(
+                  mainAxisAlignment: MainAxisAlignment.center ,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+
+                  children: <Widget>[
+
+                    new Container(
+                      width: 150.0,
+                      height: 40.0,
+                      //color: Colors.blue,
+                      child: new TextField(
+                        controller: traveledDistanceController,
+                        enabled: false,
+                        textAlign: TextAlign.center,
+                        style: new TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold,),
+                      ),
+                    ),
+                    new Container(
+                      //width: 300.0,
+                      //height: 20.0,
+                      //color: Colors.blue,
+                      child: new Text(
+                        'Distance Traveled(mi)',
+                        textAlign: TextAlign.center,
+                        style: new TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold, ),
+
+
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+
+
+              new Container(
+                child: new Column(
+                  mainAxisAlignment: MainAxisAlignment.center ,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+
+                  children: <Widget>[
+
+                    new Container(
+                      width: 150.0,
+                      height: 40.0,
+                      //color: Colors.blue,
+                      child: new TextField(
+                        controller: leftDistanceController,
+                        enabled: false,
+                        textAlign: TextAlign.center,
+                        style: new TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold,),
+                      ),
+                    ),
+
+                    new Container(
+                      //width: 300.0,
+                      //height: 20.0,
+                      //color: Colors.blue,
+                      child: new Text(
+                        'Remaining Distance(mi)',
+                        textAlign: TextAlign.center,
+                        style: new TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold, ),
+
+
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+
+            ],
+          ),
+
+
+
+
+
+
+
+
+      new Container(
+
+        decoration: new BoxDecoration(color: Colors.black),
+        child: new Column(
+        children: <Widget>[
+
+          new Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              new RaisedButton(
+                  child: Text('Map'),
+                  elevation: 2.0,
+                  onPressed: () => showMap(null, 12.0)
+              ),
+              new RaisedButton(
+                  child: Text("Trails"),
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder:
+                        (context) => SavedTrails(trails: trails, callback: (str, trail) => savedTrailsOption(str, trail))));
+                  }
+              )
+            ],
+
+          ),
+
+
+
+
+
+
+          new Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              new RaisedButton(
+                  child: isRecording ? Text("Stop Recording") : Text("Start Recording"),
+                  elevation: 2.0,
+                  color: isRecording ? Colors.red : Colors.green,
+                  onPressed: toggleRecording),
+
+
+              new RaisedButton(
+                  child:  Text("Save"),
+                  onPressed: _showDialog
+              ),
+
+            ],
+
+          ),
+
+          ],
+        ),
+         ),
           //new RaisedButton(
            // child: new Text("LOAD TRAIL"),
           //  onPressed: () => buildFromJson(),)
         ],
+      ),
       ),
 
     );
