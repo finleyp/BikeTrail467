@@ -27,56 +27,64 @@ class SavedTrailsState extends State<SavedTrails> {
       home: Scaffold(
         appBar: AppBar(
           title: const Text('Saved Trails'),
+          backgroundColor: Colors.black,
         ),
-        body: ListView.builder(
-          itemCount: widget.trails.length,
-          itemBuilder: (context, index){
-            return Dismissible(
-              key: Key(widget.trails[index].id),
-              onDismissed: (direction) {
+        body: new Container(
+          color: Colors.black87,
+          child: ListView.builder(
+            itemCount: widget.trails.length,
+            itemBuilder: (context, index){
+              return Dismissible(
+                key: Key(widget.trails[index].id),
+                onDismissed: (direction) {
 
-                Trail temp = widget.trails[index];
+                  Trail temp = widget.trails[index];
 
-                // Remove the item from our data source.
-                setState(() {
-                  widget.trails.removeAt(index);
-                });
+                  // Remove the item from our data source.
+                  setState(() {
+                    widget.trails.removeAt(index);
+                  });
 
-                // Then show a snackbar!
-                Scaffold.of(context)
-                    .showSnackBar(SnackBar(content: Text(temp.name + " dismissed")));
+                  // Then show a snackbar!
+                  Scaffold.of(context)
+                      .showSnackBar(SnackBar(content: Text(temp.name + " dismissed")));
 
-                // Then delete trail
-                deleteTrail(temp);
+                  // Then delete trail
+                  deleteTrail(temp);
 
-              },
-              // Show a red background as the item is swiped away
-              background: Container(color: Colors.red),
-              child: new Card(
-                child: new Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    new ListTile(
-                      //leading: const Icon(Icons.album),
-                      title: Text(widget.trails[index].name),
-                      subtitle: Text(widget.trails[index].id),
-                    ),
-                    new Image.network(widget.trails[index].uri.toString()),
-                    new ButtonTheme.bar( // make buttons use the appropriate styles for cards
-                      child: new ButtonBar(
-                        children: <Widget>[
-                          new FlatButton(
-                            child: const Text('View Map'),
-                            onPressed: () => showOnMap(widget.trails[index]),
-                          ),
-                        ],
+                },
+                // Show a red background as the item is swiped away
+                background: Container(color: Colors.red),
+                child: new Card(
+                  color: Colors.grey,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                  ),
+                  child: new Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      new ListTile(
+                        //leading: const Icon(Icons.album),
+                        title: Text(widget.trails[index].name),
+                        subtitle: Text(widget.trails[index].id),
                       ),
-                    ),
-                  ],
+                      new Image.network(widget.trails[index].uri.toString()),
+                      new ButtonTheme.bar( // make buttons use the appropriate styles for cards
+                        child: new ButtonBar(
+                          children: <Widget>[
+                            new FlatButton(
+                              child: const Text('View Map'),
+                              onPressed: () => showOnMap(widget.trails[index]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

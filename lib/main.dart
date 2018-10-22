@@ -112,11 +112,11 @@ class _MapPageState extends State<MapPage> {
   bool fileExists = false;
   Map<String, dynamic> trailContent;
 
-  showMap(Location location, double zoom) async {
+  showMap(List<Location> list, Location location, double zoom) async {
     //this needs to be updated with gps location on start up
     //mapviewtype terrain currently, can be changed to satellite or normal
     //needs a cool title eventually
-
+    mapView = new MapView();
     mapView.show(new MapOptions(
         mapViewType: MapViewType.normal,
         initialCameraPosition:
@@ -129,24 +129,32 @@ class _MapPageState extends State<MapPage> {
     if (location == null) {
       Position pos = await geolocator.getCurrentPosition();
       location = new Location(pos.latitude, pos.longitude);
-    }
-
-
-
-    //mapView.zoomToFit(padding: 50);
-
-    //Show polylines on map load
-    mapView.onMapReady.listen((_) {
       mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
-      loadLines.clear();
       buildFromJson();
+    }else {
+      mapView.onMapReady.listen((Null _) {
+        mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
+        loadLines.clear();
+        buildSingle(list);
 
-      print('Setting Polylines from local storage_________________________________________');
+        print('Setting Polylines from local storage_________________________________________');
 
-    });
+      });
+    }
 
   }
 
+  void buildSingle(List<Location> list){
+    Polyline line = new Polyline(
+        "1",
+        list,
+        width: 15.0,
+        color: Colors.black,
+        jointType: FigureJointType.round);
+
+    loadLines.add(line);
+    mapView.setPolylines(loadLines);
+  }
 
   void toggleRecording() {
 
@@ -315,11 +323,22 @@ class _MapPageState extends State<MapPage> {
       print("saved: $fileName");
       print(trailContent);
 
+//      print("LOOK HERE: " + lines[0].points.toString());
+//
+//      List<Location> points = lines[0].points;
+//
+//      //Add to the saved trail list
+//      generateTrails(fileName, trailName, points, lines[0], "Trail");
+
       //Clear the polyLines object and set fileExists back to false
       polyLines.clear();
       newLine.points.clear();
+      count = 0;
+      countController.text = "Update Count: " + count.toString();
 
       print('Clear Polylines');
+
+      buildFromJson();
 
     }
   }
@@ -387,7 +406,7 @@ class _MapPageState extends State<MapPage> {
             Polyline line = new Polyline(trailContent["id"],
                 points,
                 width: 15.0,
-                color: Colors.red,
+                color: Colors.green,
                 jointType: FigureJointType.round);
 
             loadLines.add(line);
@@ -424,7 +443,7 @@ class _MapPageState extends State<MapPage> {
 
     if (choice == '0'){
       int middle = (trail.points.length / 2).round();
-      showMap(trail.points[middle], 14.0);
+      showMap(trail.points, trail.points[middle], 14.0);
     } else if (choice == '1') {
       deleteFile(trail.id);
     }
@@ -479,7 +498,6 @@ class _MapPageState extends State<MapPage> {
 
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: <Widget>[
-
 
         new Container(
         child: new Column(
