@@ -7,12 +7,14 @@ import 'package:map_view/location.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import 'Constants.dart';
 import 'SettingsMenu.dart';
 import 'SavedTrails.dart';
 import 'Trail.dart';
+import 'Settings.dart';
 
 
 //api_key for google maps
@@ -30,8 +32,10 @@ Location onLoadLoc;
 MapView mapView = new MapView();
 
 bool isRecording = false;
-bool isMetricSpeed = false;
-bool isMetricDist = false;
+
+//Settings
+Settings settings;
+
 
 StreamSubscription<Position> positionStream;
 
@@ -92,6 +96,9 @@ class _MapPageState extends State<MapPage> {
  //MapView mapView = new MapView();
 
 
+  final String speedPref = "speedPref";
+  final String distPref = "distPref";
+  final String darkPref = "darkPref";
 
   // Initilize cameraPosition which displays the location on google maps
   CameraPosition cameraPosition;
@@ -159,10 +166,10 @@ class _MapPageState extends State<MapPage> {
   void toggleRecording() {
 
     //Get correct units
-    SettingsMenu settings = new SettingsMenu();
-
-    isMetricSpeed = settings.isMetricSpeed;
-    isMetricDist = settings.isMeticDist;
+//    SettingsMenu settings = new SettingsMenu();
+//
+//    isMetricSpeed = settings.getIsMetricSpeed;
+//    isMetricDist = settings.getIsMetricDist;
 
     //toggle the isRecording boolean
     setState(() => isRecording = !isRecording);
@@ -234,7 +241,7 @@ class _MapPageState extends State<MapPage> {
 
   String convertSpeed(var speed){
 
-    if(isMetricSpeed) {
+    if(settings.isMetricSpeed) {
       //Convert from Mps to Kph -- 1 mps = 3.6 kph
       double speedKph = speed * 3.6;
       return speedKph.toStringAsFixed(1);
@@ -248,7 +255,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   String convertAlt(var alt){
-    if(isMetricDist) {
+    if(settings.isMetricDist) {
       //return modified string
       return alt.toStringAsFixed(0);
 
@@ -284,6 +291,8 @@ class _MapPageState extends State<MapPage> {
 //      if (fileExists) this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
     });
 
+    getSettings();
+
     getCurrentLocation();
 
     //Get saved trails on open
@@ -303,6 +312,42 @@ class _MapPageState extends State<MapPage> {
     file.createSync();
     fileExists = true;
     file.writeAsStringSync(json.encode(tInfo));
+  }
+
+  void getSettings() async {
+    settings = new Settings(await getSpeedPref(), await getDistPref(), await getDarkPref());
+
+    print("Getting Settings");
+    print(settings.isMetricSpeed);
+    print(settings.isMetricDist);
+    print(settings.isDarkTheme);
+  }
+
+
+  void readSettings() {
+    getApplicationDocumentsDirectory().then((Directory directory){
+      dir = directory;
+
+      List<FileSystemEntity> files = dir.listSync().toList();
+
+      files.forEach((entity) {
+        if (entity is File && entity.toString() == "settings"){
+
+          print('_________' + entity.toString());
+
+          File settingsJsonFile = entity;
+
+          Map<String, dynamic> settingsContent = json.decode(settingsJsonFile.readAsStringSync());
+
+          bool isKph = settingsContent["isKph"];
+          bool isMeters = settingsContent["isMeters"];
+          bool isDarkTheme = settingsContent["isDarkTheme"];
+
+          print("Settings: " + isKph.toString() + " " + isMeters.toString() + " " + isDarkTheme.toString());
+
+        }
+      });
+    });
   }
 
   //saveTrail Method
@@ -347,6 +392,13 @@ class _MapPageState extends State<MapPage> {
 
     bool exists = false;
 
+    //Set style for the static maps
+    //String style = "feature:landscape|color:0x898a8c";
+    List<String> style = ["feature:landscape|color:0x424242",
+    "feature:road|color:0x000000|element:geometry.fill|color:0x757575",
+    "feature:road|element:geometry.stroke|color:0x000000",
+    "feature:road|element:labels.text.fill|color:0x000000"];
+
     trails.forEach((element) {
 
       if (element.id == id){
@@ -358,7 +410,7 @@ class _MapPageState extends State<MapPage> {
     if (!exists) {
 
       var staticMapUri = staticMapProvider.getStaticUriWithPath(points,
-          width: 500, height: 200, maptype: StaticMapViewType.terrain);
+          width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green");
 
       trails.add(new Trail(id, name, points, polyline, staticMapUri, description));
     }
@@ -436,6 +488,56 @@ class _MapPageState extends State<MapPage> {
       });
     });
 
+  }
+
+  //gets the speed preference
+  Future<bool> getSpeedPref() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.getBool(speedPref) ?? false;
+  }
+
+  //sets the speed preference
+  Future<bool> setSpeedPref(bool value) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.setBool(speedPref, value);
+  }
+
+  //gets the distance preference
+  Future<bool> getDistPref() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.getBool(distPref) ?? false;
+  }
+
+  //sets the distance preference
+  Future<bool> setDistPref(bool value) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.setBool(distPref, value);
+  }
+
+  //gets dark theme preference
+  Future<bool> getDarkPref() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.getBool(darkPref) ?? false;
+  }
+
+  //sets dark theme preference
+  Future<bool> setDarkPref(bool value) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.setBool(darkPref, value);
+  }
+
+  void settingsCallback(){
+
+    //Saves the settings using shared preferences
+    setSpeedPref(settings.isMetricSpeed);
+    setDistPref(settings.isMetricDist);
+    setDarkPref(settings.isDarkTheme);
 
   }
 
@@ -751,7 +853,7 @@ class _MapPageState extends State<MapPage> {
                   child: Text("Trails"),
                   onPressed: () {
                     Navigator.push(context, MaterialPageRoute(builder:
-                        (context) => SavedTrails(trails: trails, callback: (str, trail) => savedTrailsOption(str, trail))));
+                        (context) => SavedTrails(trails: trails, darkTheme: settings.isDarkTheme, callback: (str, trail) => savedTrailsOption(str, trail))));
                   }
               )
             ],
@@ -837,8 +939,8 @@ class _MapPageState extends State<MapPage> {
 
   void choiceAction(String choice) {
     if (choice == Constants.Settings){
-      Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsMenu()),
-      );
+      Navigator.push(context, MaterialPageRoute(builder:
+          (context) => SettingsMenu(settings: settings, darkTheme: settings.isDarkTheme, callback: () => settingsCallback())));
     }
   }
 

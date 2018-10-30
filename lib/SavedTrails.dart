@@ -7,9 +7,10 @@ typedef void StringCallback(String val, Trail trail);
 class SavedTrails extends StatefulWidget {
   final List<Trail> trails;
   final StringCallback callback;
+  final bool darkTheme;
 
 
-  SavedTrails({Key key, @required this.trails, this.callback}) : super(key: key);
+  SavedTrails({Key key, @required this.trails, this.darkTheme, this.callback}) : super(key: key);
 
   @override
   SavedTrailsState createState() {
@@ -20,47 +21,83 @@ class SavedTrails extends StatefulWidget {
 
 class SavedTrailsState extends State<SavedTrails> {
 
+  Color titleColor;
+  Color backgroundColor;
+  Color foregroundColor;
+  Color textColor;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+    if (widget.darkTheme) {
+      titleColor = Colors.black;
+      backgroundColor = Colors.grey[600];
+      foregroundColor = Colors.grey[800];
+      textColor = Colors.white;
+    } else {
+      titleColor = Colors.blue;
+      backgroundColor = Colors.white;
+      foregroundColor = Colors.white;
+      textColor = Colors.black;
+    }
+
+  }
+
+  final greyColor = const Color(0x68696b);
+
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
+        backgroundColor: backgroundColor,
         appBar: AppBar(
           title: const Text('Saved Trails'),
-          backgroundColor: Colors.black,
+          backgroundColor: titleColor,
         ),
-        body: new Container(
-          color: Colors.black87,
-          child: ListView.builder(
-            itemCount: widget.trails.length,
-            itemBuilder: (context, index){
-              return Dismissible(
-                key: Key(widget.trails[index].id),
-                onDismissed: (direction) {
+        body: ListView.builder(
+          itemCount: widget.trails.length,
+          itemBuilder: (context, index){
+            return Dismissible(
+              key: Key(widget.trails[index].id),
+              onDismissed: (direction) {
 
-                  Trail temp = widget.trails[index];
+                Trail temp = widget.trails[index];
 
-                  // Remove the item from our data source.
-                  setState(() {
-                    widget.trails.removeAt(index);
-                  });
+                // Remove the item from our data source.
+                setState(() {
+                  widget.trails.removeAt(index);
+                });
 
-                  // Then show a snackbar!
-                  Scaffold.of(context)
-                      .showSnackBar(SnackBar(content: Text(temp.name + " dismissed")));
+                // Then show a snackbar!
+                Scaffold.of(context)
+                    .showSnackBar(SnackBar(content: Text(temp.name + " dismissed")));
 
-                  // Then delete trail
-                  deleteTrail(temp);
+                // Then delete trail
+                deleteTrail(temp);
 
-                },
-                // Show a red background as the item is swiped away
-                background: Container(color: Colors.red),
-                child: new Card(
-                  color: Colors.grey,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15.0),
-                  ),
-                  child: new Column(
+              },
+              // Show a red background as the item is swiped away
+              background: Container(
+                  alignment: Alignment.centerLeft,
+                  padding: EdgeInsets.all(20.0),
+                  child: Icon(Icons.delete)),
+              secondaryBackground: Container(
+                  alignment: Alignment.centerRight,
+                  padding: EdgeInsets.all(20.0),
+                  child: Icon(Icons.delete)),
+              child: new Card(
+                elevation: 10.0,
+                color: foregroundColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15.0),
+                ),
+                child: ListTileTheme(
+                  style: ListTileStyle.list,
+                  textColor:  textColor,
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       new ListTile(
@@ -74,6 +111,7 @@ class SavedTrailsState extends State<SavedTrails> {
                           children: <Widget>[
                             new FlatButton(
                               child: const Text('View Map'),
+                              textColor: textColor,
                               onPressed: () => showOnMap(widget.trails[index]),
                             ),
                           ],
@@ -82,9 +120,9 @@ class SavedTrailsState extends State<SavedTrails> {
                     ],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
