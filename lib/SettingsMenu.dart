@@ -19,41 +19,27 @@ class SettingsMenu extends StatefulWidget {
 
 class _SelectionControl extends State<SettingsMenu> {
 
-  Color titleColor;
-  Color backgroundColor;
-  Color foregroundColor;
-  Color textColor;
+  ThemeData theme;
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
 
-    if (widget.darkTheme) {
-      titleColor = Colors.black;
-      backgroundColor = Colors.grey[600];
-      foregroundColor = Colors.grey[800];
-      textColor = Colors.white;
-    } else {
-      titleColor = Colors.blue;
-      backgroundColor = Colors.white;
-      foregroundColor = Colors.white;
-      textColor = Colors.black;
-    }
+    toggleColor();
 
   }
 
+  //Workaround for updating while looking at the page
   void toggleColor() {
     if (widget.settings.isDarkTheme) {
-      titleColor = Colors.black;
-      backgroundColor = Colors.grey[600];
-      foregroundColor = Colors.grey[800];
-      textColor = Colors.white;
+
+      theme = ThemeData.dark();
+
     } else {
-      titleColor = Colors.blue;
-      backgroundColor = Colors.white;
-      foregroundColor = Colors.white;
-      textColor = Colors.black;
+
+      theme = ThemeData.light();
+
     }
   }
 
@@ -63,49 +49,48 @@ class _SelectionControl extends State<SettingsMenu> {
     bool isMetricDist = widget.settings.isMetricDist;
     bool isDarkTheme = widget.settings.isDarkTheme;
 
-    // TODO: implement build
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: titleColor,
-        title: Text('Settings'),
-      ),
-      body: new Container (
-          color: foregroundColor,
-          child: Center(
-              child: ListTileTheme(
-                style: ListTileStyle.list,
-                textColor:  textColor,
-                child: Column(
-                  children: <Widget>[
-                    SwitchListTile(title: Text('Speed in kph: '),
-                        value: isMetricSpeed,
-                        onChanged: (bool value) {
-                          setState(() {
-                            widget.settings.setMetricSpeed = value;
-                          });
-                          updatePref(value);
-                        }),
-                    SwitchListTile(title: Text('Distance in meters: '),
-                        value: isMetricDist,
-                        onChanged: (bool value) {
-                          setState(() {
-                            widget.settings.setMetricDist = value;
-                          });
-                          updatePref(value);
-                        }),
-                    SwitchListTile(title: Text('Dark Theme: '),
-                        value: isDarkTheme,
-                        onChanged: (bool value) {
-                          setState(() {
-                            widget.settings.setDarkTheme = value;
-                            toggleColor();
-                          });
-                          updatePref(value);
-                        })
-                  ],
-                ),
-              )
-          )
+    return MaterialApp(
+      theme: theme,
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text('Settings'),
+        ),
+        body: new Container (
+            child: Center(
+                child: ListTileTheme(
+                  style: ListTileStyle.list,
+                  child: Column(
+                    children: <Widget>[
+                      SwitchListTile(title: Text('Speed in kph: '),
+                          value: isMetricSpeed,
+                          onChanged: (bool value) {
+                            setState(() {
+                              widget.settings.setMetricSpeed = value;
+                            });
+                            updatePref(value);
+                          }),
+                      SwitchListTile(title: Text('Distance in meters: '),
+                          value: isMetricDist,
+                          onChanged: (bool value) {
+                            setState(() {
+                              widget.settings.setMetricDist = value;
+                            });
+                            updatePref(value);
+                          }),
+                      SwitchListTile(title: Text('Dark Theme: '),
+                          value: isDarkTheme,
+                          onChanged: (bool value) {
+                            setState(() {
+                              widget.settings.setDarkTheme = value;
+                              toggleColor();
+                            });
+                            updatePref(value);
+                          })
+                    ],
+                  ),
+                )
+            )
+        ),
       ),
     );
   }

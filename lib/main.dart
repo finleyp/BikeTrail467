@@ -275,27 +275,14 @@ class _MapPageState extends State<MapPage> {
   void initState() {
     // TODO: implement initState?
     super.initState();
-    //we need to update cameraPosition with user position
-    cameraPosition = new CameraPosition(new Location(42.9634, -85.6681), 30.0);
-    //set static map to user position
-    //height and width should change size of map, currently having issues with them
-    staticMapUri = staticMapProvider.getStaticUri(
-        new Location(42.9634, -85.6681), 12,
-        height: 400, width: 900, mapType: StaticMapViewType.terrain);
-    getApplicationDocumentsDirectory().then((Directory directory){
-      dir = directory;
-      //trailsJsonFile = new File(dir.path + "/" + fileName);
-      //fileExists = trailsJsonFile.existsSync();
-      //HEREREREERERHERERER
-      //Later when we are loading more than one file this will need to be moved into the load method and trailsJsonFile will need to be the name of the file we want.
-//      if (fileExists) this.setState(() => trailContent = json.decode(trailsJsonFile.readAsStringSync()));
-    });
 
+    //get the users settings
     getSettings();
 
+    //get th users current location
     getCurrentLocation();
 
-    //Get saved trails on open
+    //Get saved trails
     buildFromJson();
   }
 
@@ -323,32 +310,6 @@ class _MapPageState extends State<MapPage> {
     print(settings.isDarkTheme);
   }
 
-
-  void readSettings() {
-    getApplicationDocumentsDirectory().then((Directory directory){
-      dir = directory;
-
-      List<FileSystemEntity> files = dir.listSync().toList();
-
-      files.forEach((entity) {
-        if (entity is File && entity.toString() == "settings"){
-
-          print('_________' + entity.toString());
-
-          File settingsJsonFile = entity;
-
-          Map<String, dynamic> settingsContent = json.decode(settingsJsonFile.readAsStringSync());
-
-          bool isKph = settingsContent["isKph"];
-          bool isMeters = settingsContent["isMeters"];
-          bool isDarkTheme = settingsContent["isDarkTheme"];
-
-          print("Settings: " + isKph.toString() + " " + isMeters.toString() + " " + isDarkTheme.toString());
-
-        }
-      });
-    });
-  }
 
   //saveTrail Method
   //woo time to save
@@ -388,33 +349,111 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  //Builds a List of trail objects for the saved trails list
   void generateTrails(String id, String name, List<Location> points, Polyline polyline, String description) {
 
     bool exists = false;
 
     //Set style for the static maps
-    //String style = "feature:landscape|color:0x898a8c";
-    List<String> style = ["feature:landscape|color:0x424242",
-    "feature:road|color:0x000000|element:geometry.fill|color:0x757575",
-    "feature:road|element:geometry.stroke|color:0x000000",
-    "feature:road|element:labels.text.fill|color:0x000000"];
+    if (settings.isDarkTheme) {
+      //Dark Theme
 
-    trails.forEach((element) {
+//      List<String> style = [
+//      "feature:landscape|color:0x424242",
+//      "feature:administrative|color:0x424242",
+//      "feauture:poi|color:0x424242|element:geometry|color:0x757575",
+//      "feature:road|color:0x000000|element:geometry.fill|color:0x757575",
+//      "feature:road|element:geometry.stroke|color:0x000000",
+//      "feature:road|element:labels.text.fill|color:0x000000"
+//      ];
 
-      if (element.id == id){
-        exists = true;
+//      List<String> style = [
+//        "feature:all|hue: 0xff1a00",
+//        "feature:all|invert_lightness:true",
+//        "feature:all|saturation:-100",
+//        "feature:all|lightness:45",
+//        "feature:all|gamma:0.5",
+//        "feature:water|geometry|color:0x2D333C"
+//      ];
+
+      List<String> style = [
+        "feature:all|hue: 0xff1a00",
+        "feature:all|invert_lightness:true",
+        "feature:all|saturation:-100",
+        "feature:all|lightness:45",
+        "feature:all|gamma:0.5",
+        "feature:all|element:labels.text.stroke|color:0x000000",
+        "feature:all|element:labels.text.stroke|lightness:12",
+        "feature:water|element:geometry|color:0x0f252e",
+        "feature:water|element:geometry|lightness:17"
+      ];
+
+//      List<String> style = [
+//        "feature:all|element:labels.text.fill|color:0x000000",
+//        "feature:all|element:labels.text.fill|saturation:36",
+//        "feature:all|element:labels.text.fill|lightness:40",
+//        "feature:all|element:labels.text.stroke|visibility:on",
+//        "feature:all|element:labels.text.stroke|color:0x000000",
+//        "feature:all|element:labels.text.fill|lightness:16",
+//        "feature:all|element:labels.icon|visibility:off",
+//        "feature:administrative|element:geometry.fill|color:0x000000",
+//        "feature:administrative|element:geometry.fill|lightness:17", ///////
+//        "feature:administrative|element:geometry.stroke|color:0x000000",
+//        "feature:administrative|element:geometry.stroke|lightness:17",
+//        "feature:administrative|element:geometry.stroke|weight:1.2",
+//        "feature:landscape|element:geometry|color:0x000000",
+//        "feature:landscpae|element:geometry|lightness:20", ///////
+//        "feature:poi|element:geometry|color:0x000000",
+//        "feature:poi|element:geometry|lightness:21", //////
+//        "feature:road.highway|element:geometry.fill|color:0x000000",
+//        "feature:road.highway|element:geometry.fill|lightness:17",
+//        "feature:road.highway|element:geometry.stroke|color:0x000000",
+//        "feature:road.highway|element:geometry.stroke|lightness:29",
+//        "feature:road.highway|element:geometry.stroke|weight:0.2",
+//        "feature:road.arterial|element:geometry|color:0x000000",
+//        "feature:road.arterial|element:geometry|lightness:18",
+//        "feature:road.local|element:geometry|color:0x000000",
+//        "feature:road.local|element:geometry|lightness:16",
+//        "feature:road.transit|element:geometry|color:0x000000",
+//        "feature:road.transit|element:geometry|lightness:19",
+//        "feature:water|element:geometry|color:0x0f252e",
+//        "feature:water|element:geometry|lightness:17"
+//      ];
+
+//      List<String> style = [
+//
+//      ];
+
+      trails.forEach((element) {
+        if (element.id == id){
+          exists = true;
+        }
+      });
+
+      //if the trail doesn't exist add the trail
+      if (!exists) {
+        var staticMapUri = staticMapProvider.getStaticUriWithPath(points,
+            width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green");
+
+        trails.add(new Trail(id, name, points, polyline, staticMapUri, description));
       }
+    } else {
+      //Light theme
 
-    });
+      trails.forEach((element) {
+        if (element.id == id){
+          exists = true;
+        }
+      });
 
-    if (!exists) {
+      //if the trail doesn't exist add the trail
+      if (!exists) {
+        var staticMapUri = staticMapProvider.getStaticUriWithPath(points,
+            width: 500, height: 200, maptype: StaticMapViewType.terrain, pathColor: "green");
 
-      var staticMapUri = staticMapProvider.getStaticUriWithPath(points,
-          width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green");
-
-      trails.add(new Trail(id, name, points, polyline, staticMapUri, description));
+        trails.add(new Trail(id, name, points, polyline, staticMapUri, description));
+      }
     }
-
   }
 
   void buildFromJson(){
@@ -538,6 +577,11 @@ class _MapPageState extends State<MapPage> {
     setSpeedPref(settings.isMetricSpeed);
     setDistPref(settings.isMetricDist);
     setDarkPref(settings.isDarkTheme);
+
+    //Clears the saved trails and rebuilds them
+    //this ensures that the static map has the correct style
+    trails.clear();
+    buildFromJson();
 
   }
 

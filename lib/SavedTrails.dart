@@ -21,41 +21,13 @@ class SavedTrails extends StatefulWidget {
 
 class SavedTrailsState extends State<SavedTrails> {
 
-  Color titleColor;
-  Color backgroundColor;
-  Color foregroundColor;
-  Color textColor;
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-
-    if (widget.darkTheme) {
-      titleColor = Colors.black;
-      backgroundColor = Colors.grey[600];
-      foregroundColor = Colors.grey[800];
-      textColor = Colors.white;
-    } else {
-      titleColor = Colors.blue;
-      backgroundColor = Colors.white;
-      foregroundColor = Colors.white;
-      textColor = Colors.black;
-    }
-
-  }
-
-  final greyColor = const Color(0x68696b);
-
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: widget.darkTheme ? ThemeData.dark() : ThemeData.light() ,
       home: Scaffold(
-        backgroundColor: backgroundColor,
         appBar: AppBar(
           title: const Text('Saved Trails'),
-          backgroundColor: titleColor,
         ),
         body: ListView.builder(
           itemCount: widget.trails.length,
@@ -90,13 +62,11 @@ class SavedTrailsState extends State<SavedTrails> {
                   child: Icon(Icons.delete)),
               child: new Card(
                 elevation: 10.0,
-                color: foregroundColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15.0),
                 ),
                 child: ListTileTheme(
                   style: ListTileStyle.list,
-                  textColor:  textColor,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
@@ -111,7 +81,6 @@ class SavedTrailsState extends State<SavedTrails> {
                           children: <Widget>[
                             new FlatButton(
                               child: const Text('View Map'),
-                              textColor: textColor,
                               onPressed: () => showOnMap(widget.trails[index]),
                             ),
                           ],
