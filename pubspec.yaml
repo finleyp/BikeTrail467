@@ -23,9 +23,14 @@ dependencies:
   cupertino_icons: ^0.1.2
   #map_view: ^0.0.14
   geolocator: ^2.0.1
+  google_api_availability: 1.0.2
+  permission_handler: 2.0.0
   uri: ^0.11.3
   path_provider: ^0.4.1
   uuid: ^1.0.0
+  firebase_database: ^1.0.5
+  firebase_core: any
+
 
   map_view:
       git:

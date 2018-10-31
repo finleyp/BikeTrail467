@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "413461348854",
+    "firebase_url": "https://capstone-216019.firebaseio.com",
+    "project_id": "capstone-216019",
+    "storage_bucket": "capstone-216019.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:413461348854:android:41c69d220cc28a90",
+        "android_client_info": {
+          "package_name": "biketrails.mapfeasibility"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "413461348854-6n6frumsashdt7g92rdfrphjh6cl3htj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_Ooq6MLvZXGQiyD8GJ-WCAEgEiZw4ZQk"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
