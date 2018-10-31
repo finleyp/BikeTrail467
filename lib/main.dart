@@ -126,12 +126,26 @@ class _MapPageState extends State<MapPage> {
   Map<String, dynamic> trailContent;
 
 
-  DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails");
 
-  sendData(dynamic temp, String name){
-    print("Attempting to sent to database...");
-    database.push().child(name).set(temp);
+
+  sendData(dynamic temp, String uName){
+    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName);
+    print("Attempting to send to database...");
+    database.set(temp);
   }
+
+  getData(String uName){
+    print("Attempting to receive from database...");
+    var query = FirebaseDatabase.instance.reference().child("Trails").child("trail-hello world-9d6bfd70-bd30-11e8-861d-8fbc26a2b73a");
+    query.once()
+        .then((DataSnapshot snapshot) {
+    var key = snapshot.key;
+    var value = snapshot.value;
+    print("key: $key");
+    print("value: $value");
+    });
+  }
+
 
 
   showMap(List<Location> list, Location location, double zoom) async {
@@ -314,12 +328,13 @@ class _MapPageState extends State<MapPage> {
       setState(() {
         toggleColor(result);
       });
+      //Get saved trails
+      buildFromJson();
     });
     //get th users current location
     getCurrentLocation();
 
-    //Get saved trails
-    buildFromJson();
+
   }
 
   //Gets the current location on load
@@ -362,7 +377,7 @@ class _MapPageState extends State<MapPage> {
       //lines.forEach((line) => print(line.toMap()));
 
       //Function call to add new trail onto the database
-      sendData(tInfo , trailName);
+      sendData(tInfo , fileName);
       createJson(tInfo, dir, fileName);
 
       this.setState(() =>
@@ -954,9 +969,11 @@ class _MapPageState extends State<MapPage> {
               new RaisedButton(
                   child: Text("Trails"),
                   onPressed: () {
+                    getData("test");
                     Navigator.push(context, MaterialPageRoute(builder:
                         (context) => SavedTrails(trails: trails, darkTheme: settings.isDarkTheme, callback: (str, trail) => savedTrailsOption(str, trail))));
                   }
+
               )
             ],
 
