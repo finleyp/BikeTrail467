@@ -65,6 +65,7 @@ var aveSpeed = 0.0;
 var uuid = new Uuid();
 var tempSpeed = 0.0;
 
+ThemeData theme;
 
 
 Polyline newLine = new Polyline(
@@ -105,7 +106,6 @@ class _MapPageState extends State<MapPage> {
   final String speedPref = "speedPref";
   final String distPref = "distPref";
   final String darkPref = "darkPref";
-
   // Initilize cameraPosition which displays the location on google maps
   CameraPosition cameraPosition;
 
@@ -309,8 +309,12 @@ class _MapPageState extends State<MapPage> {
     super.initState();
 
     //get the users settings
-    getSettings();
 
+    getSettings().then((result){
+      setState(() {
+        toggleColor(result);
+      });
+    });
     //get th users current location
     getCurrentLocation();
 
@@ -333,13 +337,16 @@ class _MapPageState extends State<MapPage> {
     file.writeAsStringSync(json.encode(tInfo));
   }
 
-  void getSettings() async {
+  Future<Settings> getSettings() async {
+
     settings = new Settings(await getSpeedPref(), await getDistPref(), await getDarkPref());
 
     print("Getting Settings");
     print(settings.isMetricSpeed);
     print(settings.isMetricDist);
     print(settings.isDarkTheme);
+
+    return settings;
   }
 
 
@@ -616,7 +623,7 @@ class _MapPageState extends State<MapPage> {
     //this ensures that the static map has the correct style
     trails.clear();
     buildFromJson();
-
+    toggleColor(settings);
   }
 
   void savedTrailsOption(String choice, Trail trail) {
@@ -630,7 +637,17 @@ class _MapPageState extends State<MapPage> {
 
   }
 
+  void toggleColor(Settings set) {
+    if (set.isDarkTheme) {
 
+      theme = ThemeData.dark();
+
+    } else {
+
+      theme = ThemeData.light();
+
+    }
+  }
   /*
   * This is the face of the app. It will determine what it looks like
   * from the app bar at the top, to each column that is placed below it
@@ -651,12 +668,13 @@ class _MapPageState extends State<MapPage> {
     longController.text = "Long: 0";
     speedController.text = "0";
     altitudeController.text = "Altitude: 0";
-
-    return new Scaffold(
+    return MaterialApp(
+      //theme: settings.isDarkTheme ? ThemeData.dark() : ThemeData.light(),
+      theme : theme,
+      home: Scaffold(
       //appBar is the bar displayed at the top of the screen
       appBar: AppBar(
         title: Text("Bike Trail"),
-        backgroundColor: Colors.black,
         actions: <Widget>[
           PopupMenuButton<String>(
             onSelected: choiceAction,
@@ -672,7 +690,7 @@ class _MapPageState extends State<MapPage> {
         ],
       ),
       body: new Container(
-        decoration: new BoxDecoration(color: Colors.black87),
+       // decoration: new BoxDecoration(color: Colors.black87),
         child: new Column(
 
 
@@ -693,7 +711,7 @@ class _MapPageState extends State<MapPage> {
                       controller: speedController,
                       enabled: false,
                       textAlign: TextAlign.center,
-                      style: new TextStyle(color: Colors.white, fontSize: 48.0, fontWeight: FontWeight.bold,  ),
+                      style: new TextStyle(fontSize: 48.0, fontWeight: FontWeight.bold,  ),
                     ),
                   ),
                   new Container(
@@ -703,7 +721,7 @@ class _MapPageState extends State<MapPage> {
                     child: new Text(
                       'Current Speed(mph)',
                       textAlign: TextAlign.center,
-                      style: new TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold, ),
+                      style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, ),
 
 
                     ),
@@ -769,7 +787,7 @@ class _MapPageState extends State<MapPage> {
                           controller: timeController,
                           enabled: false,
                           textAlign: TextAlign.center,
-                          style: new TextStyle(color: Colors.white, fontSize: 18.0,fontWeight: FontWeight.bold, ),
+                          style: new TextStyle( fontSize: 18.0,fontWeight: FontWeight.bold, ),
                         ),
                       ),
                       new Container(
@@ -779,7 +797,7 @@ class _MapPageState extends State<MapPage> {
                         child: new Text(
                           'Time',
                           textAlign: TextAlign.center,
-                          style: new TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold, ),
+                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
 
 
                         ),
@@ -804,7 +822,7 @@ class _MapPageState extends State<MapPage> {
                           controller: aveSpeedController,
                           enabled: false,
                           textAlign: TextAlign.center,
-                          style: new TextStyle(color: Colors.white, fontSize: 18.0,fontWeight: FontWeight.bold, ),
+                          style: new TextStyle( fontSize: 18.0,fontWeight: FontWeight.bold, ),
                         ),
                       ),
 
@@ -815,7 +833,7 @@ class _MapPageState extends State<MapPage> {
                         child: new Text(
                           'Average Speed(mph)',
                           textAlign: TextAlign.center,
-                          style: new TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold, ),
+                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
 
 
                         ),
@@ -851,7 +869,7 @@ class _MapPageState extends State<MapPage> {
                           controller: traveledDistanceController,
                           enabled: false,
                           textAlign: TextAlign.center,
-                          style: new TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold,),
+                          style: new TextStyle( fontSize: 18.0, fontWeight: FontWeight.bold,),
                         ),
                       ),
                       new Container(
@@ -861,7 +879,7 @@ class _MapPageState extends State<MapPage> {
                         child: new Text(
                           'Distance Traveled(mi)',
                           textAlign: TextAlign.center,
-                          style: new TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold, ),
+                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
 
 
                         ),
@@ -887,7 +905,7 @@ class _MapPageState extends State<MapPage> {
                           controller: leftDistanceController,
                           enabled: false,
                           textAlign: TextAlign.center,
-                          style: new TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold,),
+                          style: new TextStyle( fontSize: 18.0, fontWeight: FontWeight.bold,),
                         ),
                       ),
 
@@ -898,7 +916,7 @@ class _MapPageState extends State<MapPage> {
                         child: new Text(
                           'Remaining Distance(mi)',
                           textAlign: TextAlign.center,
-                          style: new TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold, ),
+                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
 
 
                         ),
@@ -921,7 +939,7 @@ class _MapPageState extends State<MapPage> {
             new Container(
 
 
-        decoration: new BoxDecoration(color: Colors.black),
+        //decoration: new BoxDecoration(color: Colors.black),
         child: new Column(
         children: <Widget>[
 
@@ -945,32 +963,7 @@ class _MapPageState extends State<MapPage> {
           ),
 
 
-                  new Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                      new RaisedButton(
-                          child: Text('Map'),
-                          padding: const EdgeInsets.all(8.0),
-                          textColor: Colors.white,
-                          color: Colors.white70,
-                          highlightColor: Colors.white30,
-                          elevation: 2.0,
-                          onPressed: () => showMap(null, null,12.0)
-                      ),
-                      new RaisedButton(
-                          child: Text("Trails"),
-                          padding: const EdgeInsets.all(8.0),
-                          textColor: Colors.white,
-                          color: Colors.white70,
-                          highlightColor: Colors.white30,
-                          onPressed: () {
-                            Navigator.push(context, MaterialPageRoute(builder:
-                                (context) => SavedTrails(trails: trails, callback: (str, trail) => savedTrailsOption(str, trail))));
-                          }
-                      )
-                    ],
 
-                  ),
 
 
 
@@ -990,9 +983,6 @@ class _MapPageState extends State<MapPage> {
                       new RaisedButton(
                           child:  Text("Save"),
                           padding: const EdgeInsets.all(8.0),
-                          textColor: Colors.white,
-                          color: Colors.white70,
-                          highlightColor: Colors.white30,
                           onPressed: _showDialog
                       ),
 
@@ -1011,6 +1001,7 @@ class _MapPageState extends State<MapPage> {
         ),
       ),
 
+    ),
     );
   }
 
