@@ -1,6 +1,8 @@
 package io.flutter.plugins;
 
 import io.flutter.plugin.common.PluginRegistry;
+import io.flutter.plugins.firebase.core.FirebaseCorePlugin;
+import io.flutter.plugins.firebase.database.FirebaseDatabasePlugin;
 import com.baseflow.flutter.plugin.geolocator.GeolocatorPlugin;
 import com.baseflow.googleapiavailability.GoogleApiAvailabilityPlugin;
 import com.apptreesoftware.mapview.MapViewPlugin;
@@ -16,6 +18,8 @@ public final class GeneratedPluginRegistrant {
     if (alreadyRegisteredWith(registry)) {
       return;
     }
+    FirebaseCorePlugin.registerWith(registry.registrarFor("io.flutter.plugins.firebase.core.FirebaseCorePlugin"));
+    FirebaseDatabasePlugin.registerWith(registry.registrarFor("io.flutter.plugins.firebase.database.FirebaseDatabasePlugin"));
     GeolocatorPlugin.registerWith(registry.registrarFor("com.baseflow.flutter.plugin.geolocator.GeolocatorPlugin"));
     GoogleApiAvailabilityPlugin.registerWith(registry.registrarFor("com.baseflow.googleapiavailability.GoogleApiAvailabilityPlugin"));
     MapViewPlugin.registerWith(registry.registrarFor("com.apptreesoftware.mapview.MapViewPlugin"));

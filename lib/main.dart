@@ -14,7 +14,10 @@ import 'Constants.dart';
 import 'SettingsMenu.dart';
 import 'SavedTrails.dart';
 import 'Trail.dart';
+
+import 'package:firebase_database/firebase_database.dart';
 import 'Settings.dart';
+
 
 
 //api_key for google maps
@@ -80,6 +83,7 @@ Polyline loadLine = new Polyline(
     color: Colors.black,
     jointType: FigureJointType.round);
 
+
 void main(){
   MapView.setApiKey(api_key);
   runApp(new MaterialApp(
@@ -120,6 +124,15 @@ class _MapPageState extends State<MapPage> {
   String fileName = "Trails.json";
   bool fileExists = false;
   Map<String, dynamic> trailContent;
+
+
+  DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails");
+
+  sendData(dynamic temp, String name){
+    print("Attempting to sent to database...");
+    database.push().child(name).set(temp);
+  }
+
 
   showMap(List<Location> list, Location location, double zoom) async {
     //this needs to be updated with gps location on start up
@@ -341,6 +354,8 @@ class _MapPageState extends State<MapPage> {
       Map<String, dynamic> tInfo = lines[0].toMap();
       //lines.forEach((line) => print(line.toMap()));
 
+      //Function call to add new trail onto the database
+      sendData(tInfo , trailName);
       createJson(tInfo, dir, fileName);
 
       this.setState(() =>
@@ -980,6 +995,7 @@ class _MapPageState extends State<MapPage> {
                           highlightColor: Colors.white30,
                           onPressed: _showDialog
                       ),
+
 
                     ],
 
