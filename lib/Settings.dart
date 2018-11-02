@@ -2,8 +2,9 @@ class Settings {
    bool isMetricSpeed;
    bool isMetricDist;
    bool isDarkTheme;
+   bool showDebug;
 
-  Settings(this.isMetricSpeed, this.isMetricDist, this.isDarkTheme);
+  Settings(this.isMetricSpeed, this.isMetricDist, this.isDarkTheme, this.showDebug);
 
   set setMetricSpeed(bool value) {
     isMetricSpeed = value;
@@ -15,5 +16,9 @@ class Settings {
 
   set setDarkTheme(bool value) {
     isDarkTheme = value;
+  }
+
+  set setDebug(bool value) {
+    showDebug = value;
   }
 }

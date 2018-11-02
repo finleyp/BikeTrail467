@@ -18,7 +18,11 @@ import 'Trail.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'Settings.dart';
 
-
+///
+/// Stopwatch source and inspiration
+///
+/// https://gist.github.com/bizz84/2cdddf0ac2b7db3df1ceb0618a317597
+///
 
 //api_key for google maps
 var api_key = "AIzaSyBZodZXTiZIxcz6iBwL076yNEq_11769Fo";
@@ -39,6 +43,22 @@ bool isRecording = false;
 //Settings
 Settings settings;
 
+//Themes
+final ThemeData darkTheme = new ThemeData(
+  brightness: Brightness.dark,
+  primaryTextTheme: new TextTheme(display2: new TextStyle(color: Colors.white)),
+  textTheme: new TextTheme(display2: new TextStyle(color: Colors.white)),
+  accentTextTheme: new TextTheme(display2: new TextStyle(color: Colors.white)),
+  hintColor: Colors.white,
+  highlightColor: Colors.white,
+  textSelectionColor: Colors.white,
+  textSelectionHandleColor: Colors.white
+
+);
+final ThemeData lightTheme = new ThemeData(
+  brightness: Brightness.light
+);
+
 
 StreamSubscription<Position> positionStream;
 
@@ -48,13 +68,12 @@ var latController = new TextEditingController();
 var longController = new TextEditingController();
 var altitudeController = new TextEditingController();
 
+//Dashboard variables
+//var timeController = new TextEditingController();
+//var leftDistanceController = new TextEditingController();
+//var traveledDistanceController = new TextEditingController();
+//var aveSpeedController = new TextEditingController();
 
-
-var speedController = new TextEditingController();
-var timeController = new TextEditingController();
-var leftDistanceController = new TextEditingController();
-var traveledDistanceController = new TextEditingController();
-var aveSpeedController = new TextEditingController();
 
 var trailNameController = new TextEditingController();
 
@@ -66,6 +85,9 @@ var uuid = new Uuid();
 var tempSpeed = 0.0;
 
 ThemeData theme;
+bool showDebug = false;
+bool isKph = false;
+bool isMeters = false;
 
 
 Polyline newLine = new Polyline(
@@ -103,9 +125,29 @@ class _MapPageState extends State<MapPage> {
   //MapView mapView = new MapView();
 
 
+  //Dashboard Values
+  double speedVal = 0.0;
+  double aveSpeedVal = 0.0;
+  String timeVal = "00:00:00";
+  double distanceLeftVal = 0.0;
+  double distanceTraveledVal = 0.0;
+  int countVal = 0;
+  double latVal = 0.0;
+  double longVal = 0.0;
+  double altVal = 0.0;
+
+
+  //Stopwatch
+  Stopwatch stopWatch;
+
+  //Timer to determine how frequently the stopwatch gui updates
+  Timer timer;
+
+
   final String speedPref = "speedPref";
   final String distPref = "distPref";
   final String darkPref = "darkPref";
+  final String debugPref = "debugPref";
   // Initilize cameraPosition which displays the location on google maps
   CameraPosition cameraPosition;
 
@@ -205,11 +247,28 @@ class _MapPageState extends State<MapPage> {
 
     //starts stream if isRecording is true
     if (isRecording){
+      //Reset and start stopwatch
+      stopWatch.reset();
+      stopWatch.start();
+      //start timer for stopwatch gui updates
+      timer = new Timer.periodic(new Duration(milliseconds: 30), setStopWatchGui);
+
       getPositionStream();
     } else {
 
+      //Stop the stopwatch
+      stopWatch.stop();
+      //Stop the timer
+      timer.cancel();
+
       //cancels the stream if isRecording is false
       positionStream.cancel();
+
+      setState(() {
+        speedVal = 0.0;
+        aveSpeedVal = 0.0;
+      });
+
     }
   }
 
@@ -229,7 +288,7 @@ class _MapPageState extends State<MapPage> {
           tempSpeed = position.speed.toDouble();
           //Unit conversions, rounding, and string building
           double speed = convertSpeed(tempSpeed);
-          String altitude = convertAlt(position.altitude);
+          double altitude = convertAlt(position.altitude);
 
           //convert the Position object to Location object to be usable with map_view
           Location loc = new Location.full(position.latitude, position.longitude, 0,
@@ -250,16 +309,14 @@ class _MapPageState extends State<MapPage> {
           }
 
 
-          countController.text = "Count: $count";
-          speedController.text = "$speed";
-          aveSpeedController.text = "$aveSpeed";
-
-
-          altitudeController.text = "Altitude: $altitude";
-          latController.text = "Lat: " + loc.latitude.toString();
-          //position.latitude.toString();
-          longController.text = "Long: " + loc.longitude.toString();
-
+          setState(() {
+            speedVal = speed;
+            aveSpeedVal = aveSpeed;
+            countVal = count;
+            latVal = loc.latitude;
+            longVal = loc.longitude;
+            altVal = altitude;
+          });
 
 
           //Clear the list of polylines before adding the new version
@@ -282,8 +339,8 @@ class _MapPageState extends State<MapPage> {
 
   //String
   double convertSpeed(var speed){
-
-    if(settings.isMetricSpeed) {
+    
+    if(isKph) {
       //Convert from Mps to Kph -- 1 mps = 3.6 kph
       double speedKph = speed * 3.6;
       return speedKph;//.toStringAsFixed(1);
@@ -296,19 +353,15 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  //code ninja was here,
-  //he bows to Sigma the Great
-  //2018
-
-  String convertAlt(var alt){
-    if(settings.isMetricDist) {
-      //return modified string
-      return alt.toStringAsFixed(0);
+  double convertAlt(var alt){
+    if(isMeters) {
+      //return meters
+      return alt;
 
     } else {
       //Convert to feet -- 1 meter = 3.28084 feet
       double altFt = alt * 3.28084;
-      return altFt.toStringAsFixed(0);
+      return altFt;
 
     }
   }
@@ -323,16 +376,19 @@ class _MapPageState extends State<MapPage> {
     super.initState();
 
     //get the users settings
-
     getSettings().then((result){
       setState(() {
-        toggleColor(result);
+        toggleSettings(result);
       });
       //Get saved trails
       buildFromJson();
     });
     //get th users current location
     getCurrentLocation();
+
+    //Make Stopwatch -- stopped with zero elapsed time
+    stopWatch = new Stopwatch();
+
 
 
   }
@@ -354,12 +410,13 @@ class _MapPageState extends State<MapPage> {
 
   Future<Settings> getSettings() async {
 
-    settings = new Settings(await getSpeedPref(), await getDistPref(), await getDarkPref());
+    settings = new Settings(await getSpeedPref(), await getDistPref(), await getDarkPref(), await getDebugPref());
 
     print("Getting Settings");
     print(settings.isMetricSpeed);
     print(settings.isMetricDist);
     print(settings.isDarkTheme);
+    print(settings.showDebug);
 
     return settings;
   }
@@ -413,25 +470,6 @@ class _MapPageState extends State<MapPage> {
     //Set style for the static maps
     if (settings.isDarkTheme) {
       //Dark Theme
-
-//      List<String> style = [
-//      "feature:landscape|color:0x424242",
-//      "feature:administrative|color:0x424242",
-//      "feauture:poi|color:0x424242|element:geometry|color:0x757575",
-//      "feature:road|color:0x000000|element:geometry.fill|color:0x757575",
-//      "feature:road|element:geometry.stroke|color:0x000000",
-//      "feature:road|element:labels.text.fill|color:0x000000"
-//      ];
-
-//      List<String> style = [
-//        "feature:all|hue: 0xff1a00",
-//        "feature:all|invert_lightness:true",
-//        "feature:all|saturation:-100",
-//        "feature:all|lightness:45",
-//        "feature:all|gamma:0.5",
-//        "feature:water|geometry|color:0x2D333C"
-//      ];
-
       List<String> style = [
         "feature:all|hue: 0xff1a00",
         "feature:all|invert_lightness:true",
@@ -444,41 +482,6 @@ class _MapPageState extends State<MapPage> {
         "feature:water|element:geometry|lightness:17"
       ];
 
-//      List<String> style = [
-//        "feature:all|element:labels.text.fill|color:0x000000",
-//        "feature:all|element:labels.text.fill|saturation:36",
-//        "feature:all|element:labels.text.fill|lightness:40",
-//        "feature:all|element:labels.text.stroke|visibility:on",
-//        "feature:all|element:labels.text.stroke|color:0x000000",
-//        "feature:all|element:labels.text.fill|lightness:16",
-//        "feature:all|element:labels.icon|visibility:off",
-//        "feature:administrative|element:geometry.fill|color:0x000000",
-//        "feature:administrative|element:geometry.fill|lightness:17", ///////
-//        "feature:administrative|element:geometry.stroke|color:0x000000",
-//        "feature:administrative|element:geometry.stroke|lightness:17",
-//        "feature:administrative|element:geometry.stroke|weight:1.2",
-//        "feature:landscape|element:geometry|color:0x000000",
-//        "feature:landscpae|element:geometry|lightness:20", ///////
-//        "feature:poi|element:geometry|color:0x000000",
-//        "feature:poi|element:geometry|lightness:21", //////
-//        "feature:road.highway|element:geometry.fill|color:0x000000",
-//        "feature:road.highway|element:geometry.fill|lightness:17",
-//        "feature:road.highway|element:geometry.stroke|color:0x000000",
-//        "feature:road.highway|element:geometry.stroke|lightness:29",
-//        "feature:road.highway|element:geometry.stroke|weight:0.2",
-//        "feature:road.arterial|element:geometry|color:0x000000",
-//        "feature:road.arterial|element:geometry|lightness:18",
-//        "feature:road.local|element:geometry|color:0x000000",
-//        "feature:road.local|element:geometry|lightness:16",
-//        "feature:road.transit|element:geometry|color:0x000000",
-//        "feature:road.transit|element:geometry|lightness:19",
-//        "feature:water|element:geometry|color:0x0f252e",
-//        "feature:water|element:geometry|lightness:17"
-//      ];
-
-//      List<String> style = [
-//
-//      ];
 
       trails.forEach((element) {
         if (element.id == id){
@@ -488,10 +491,31 @@ class _MapPageState extends State<MapPage> {
 
       //if the trail doesn't exist add the trail
       if (!exists) {
-        var staticMapUri = staticMapProvider.getStaticUriWithPath(points,
-            width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green");
 
-        trails.add(new Trail(id, name, points, polyline, staticMapUri, description));
+        Location startPoint = points.first;
+        Location endPoint = points.last;
+
+        List<Marker> markers = createMarkers(startPoint, endPoint);
+
+        //Due to static map url character limits a rough estimate of 300 points is the maximum
+        if (points.length > 300) {
+          List<Location> newPoints = shortenPointsList(points);
+
+          //Retain first and last points
+          newPoints.insert(0, startPoint);
+          newPoints.add(endPoint);
+
+          var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(newPoints, markers,
+              width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green", customIcon: true);
+
+          trails.add(new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description));
+        } else {
+          var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(points, markers,
+              width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green", customIcon: true);
+
+          trails.add(
+              new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description));
+        }
       }
     } else {
       //Light theme
@@ -504,12 +528,83 @@ class _MapPageState extends State<MapPage> {
 
       //if the trail doesn't exist add the trail
       if (!exists) {
-        var staticMapUri = staticMapProvider.getStaticUriWithPath(points,
-            width: 500, height: 200, maptype: StaticMapViewType.terrain, pathColor: "green");
 
-        trails.add(new Trail(id, name, points, polyline, staticMapUri, description));
+        Location startPoint = points.first;
+        Location endPoint = points.last;
+
+        List<Marker> markers = createMarkers(startPoint, endPoint);
+
+        //Due to static map url character limits a rough estimate of 300 points is the maximum
+        if (points.length > 300) {
+          List<Location> newPoints = shortenPointsList(points);
+
+          //Retain first and last points
+          newPoints.insert(0, startPoint);
+          newPoints.add(endPoint);
+
+          var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(newPoints, markers,
+              width: 500, height: 200, maptype: StaticMapViewType.terrain, pathColor: "green", customIcon: true);
+
+          trails.add(new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description));
+        } else {
+          var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(points, markers,
+              width: 500, height: 200, maptype: StaticMapViewType.terrain, pathColor: "green", customIcon: true);
+
+          trails.add(
+              new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description));
+        }
       }
     }
+  }
+
+  //Recursive function to reduce the number of points in the list for use with the static maps
+  List<Location> shortenPointsList(List<Location> points) {
+    List<Location> newPoints = new List();
+
+    for (int i = 0; i < points.length; i++) {
+      if (i % 2 == 0) {
+        newPoints.add(points[i]);
+      }
+    }
+
+    if (newPoints.length > 300) {
+      shortenPointsList(newPoints);
+    }
+
+    return newPoints;
+  }
+
+  //Set markers for the static maps
+  List<Marker> createMarkers(Location start, Location end){
+    List<Marker> markers = <Marker>[
+      new Marker(
+        "1",
+        "start",
+        start.latitude,
+        start.longitude,
+        color: Colors.green,
+        markerIcon: new MarkerIcon(
+          "https://goo.gl/1VVHYw",
+//          width: 112.0,
+//          height: 75.0,
+        ),
+      ),
+      new Marker(
+        "2",
+        "end",
+        end.latitude,
+        end.longitude,
+        color: Colors.red,
+        markerIcon: new MarkerIcon(
+          "https://goo.gl/g3ZkBN",
+//          width:112.0,
+//          height: 75.0,
+        )
+      )
+    ];
+
+    return markers;
+
   }
 
   void buildFromJson(){
@@ -627,18 +722,33 @@ class _MapPageState extends State<MapPage> {
     return prefs.setBool(darkPref, value);
   }
 
+  //gets debug ui preference
+  Future<bool> getDebugPref() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.getBool(debugPref) ?? false;
+  }
+
+  //sets debug ui preference
+  Future<bool> setDebugPref(bool value) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.setBool(debugPref, value);
+  }
+
   void settingsCallback(){
 
     //Saves the settings using shared preferences
     setSpeedPref(settings.isMetricSpeed);
     setDistPref(settings.isMetricDist);
     setDarkPref(settings.isDarkTheme);
+    setDebugPref(settings.showDebug);
 
     //Clears the saved trails and rebuilds them
     //this ensures that the static map has the correct style
     trails.clear();
     buildFromJson();
-    toggleColor(settings);
+    toggleSettings(settings);
   }
 
   void savedTrailsOption(String choice, Trail trail) {
@@ -652,17 +762,43 @@ class _MapPageState extends State<MapPage> {
 
   }
 
-  void toggleColor(Settings set) {
+  void toggleSettings(Settings set) {
+    //Choose correct theme
     if (set.isDarkTheme) {
-
-      theme = ThemeData.dark();
-
+      setState(() {
+        theme = darkTheme;
+      });
     } else {
+      setState(() {
+        theme = lightTheme;
+      });
+    }
 
-      theme = ThemeData.light();
+    //Set debug ui
+    setState(() {
+      showDebug = set.showDebug;
+    });
 
+    //Set speed unit
+    setState(() {
+      isKph = set.isMetricSpeed;
+    });
+
+    //Set measurement unit
+    setState(() {
+      isMeters = set.isMetricDist;
+    });
+  }
+
+
+  void setStopWatchGui(Timer timer){
+    if (stopWatch.isRunning) {
+      setState(() {
+        timeVal = stopWatch.elapsed.toString();
+      });
     }
   }
+
   /*
   * This is the face of the app. It will determine what it looks like
   * from the app bar at the top, to each column that is placed below it
@@ -671,20 +807,7 @@ class _MapPageState extends State<MapPage> {
   *
   * */
   Widget build(BuildContext context){
-
-
-    timeController.text = "0:00:00";
-    leftDistanceController.text = "10.0";
-    traveledDistanceController.text = "0.00";
-    aveSpeedController.text = "0.00";
-
-    countController.text = "Count: 0";
-    latController.text = "Lat: 0";
-    longController.text = "Long: 0";
-    speedController.text = "0";
-    altitudeController.text = "Altitude: 0";
     return MaterialApp(
-      //theme: settings.isDarkTheme ? ThemeData.dark() : ThemeData.light(),
       theme : theme,
       home: Scaffold(
       //appBar is the bar displayed at the top of the screen
@@ -707,257 +830,213 @@ class _MapPageState extends State<MapPage> {
       body: new Container(
        // decoration: new BoxDecoration(color: Colors.black87),
         child: new Column(
-
-
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
-
             new Container(
               child: new Column(
                 mainAxisAlignment: MainAxisAlignment.center ,
                 crossAxisAlignment: CrossAxisAlignment.center,
-
                 children: <Widget>[
                   new Container(
-                    //width: 300.0,
-                    //height: 20.0,
-                    //color: Colors.blue,
-                    child: new TextField(
-                      controller: speedController,
-                      enabled: false,
-                      textAlign: TextAlign.center,
-                      style: new TextStyle(fontSize: 48.0, fontWeight: FontWeight.bold,  ),
+                    child: new Text(
+                        speedVal.toStringAsFixed(1),
+                        textAlign: TextAlign.center,
+                        style: new TextStyle(fontSize: 60.0, fontWeight: FontWeight.bold)
                     ),
                   ),
                   new Container(
-                    //width: 300.0,
-                    //height: 20.0,
-                    //color: Colors.blue,
                     child: new Text(
-                      'Current Speed(mph)',
+                      isKph ? 'Current Speed(kph)' : 'Current Speed(mph)',
                       textAlign: TextAlign.center,
-                      style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, ),
-
-
+                      style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)
                     ),
                   ),
                 ],
               ),
             ),
-
-
-
-
-
-      new Container(
-        //width: 150.0,
-        height: 40.0,
-        color: Colors.yellowAccent,
-        child: new Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            new Container(
-              width: 100.0,
-              height: 40.0,
-              color: Colors.yellowAccent,
-              child: new TextField(controller: countController),
-            ),
-            new Container(
-              width: 100.0,
-              height: 40.0,
-              color: Colors.yellowAccent,
-              child: new TextField(controller: latController),
-            ),
-            new Container(
-              width: 100.0,
-              height: 40.0,
-              color: Colors.yellowAccent,
-              child: new TextField(controller: longController),
-            ),
-          ],
-
-
-        ),
-
-      )
-    ,
-
-
-
             new Row(// upper middle
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
-
                 new Container(
                   child: new Column(
                     mainAxisAlignment: MainAxisAlignment.center ,
                     crossAxisAlignment: CrossAxisAlignment.center,
-
                     children: <Widget>[
                       new Container(
-                        width: 150.0,
-                        height: 40.0,
+//                        width: 150.0,
+//                        height: 40.0,
                         //color: Colors.blue,
-                        child: new TextField(
-                          controller: timeController,
-                          enabled: false,
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 18.0,fontWeight: FontWeight.bold, ),
+                        child: new Text(
+                            timeVal,
+                            textAlign: TextAlign.center,
+                            style: new TextStyle(fontSize: 30.0, fontWeight: FontWeight.bold)
                         ),
                       ),
                       new Container(
-                        //width: 300.0,
-                        //height: 20.0,
-                        //color: Colors.blue,
                         child: new Text(
                           'Time',
                           textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-
-
+                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold)
                         ),
                       ),
                     ],
                   ),
                 ),
-
-
                 new Container(
                   child: new Column(
                     mainAxisAlignment: MainAxisAlignment.center ,
                     crossAxisAlignment: CrossAxisAlignment.center,
-
                     children: <Widget>[
-
                       new Container(
-                        width: 150.0,
-                        height: 40.0,
-                        //color: Colors.yellowAccent,
-                        child: new TextField(
-                          controller: aveSpeedController,
-                          enabled: false,
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 18.0,fontWeight: FontWeight.bold, ),
-                        ),
-                      ),
-
-                      new Container(
-                        //width: 300.0,
-                        //height: 20.0,
-                        //color: Colors.blue,
+//                        width: 150.0,
+//                        height: 40.0,
                         child: new Text(
-                          'Average Speed(mph)',
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-
-
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-
-              ],
-            ),
-
-
-
-
-
-            new Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-
-                new Container(
-                  child: new Column(
-                    mainAxisAlignment: MainAxisAlignment.center ,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-
-                    children: <Widget>[
-
-                      new Container(
-                        width: 150.0,
-                        height: 40.0,
-                        //color: Colors.blue,
-                        child: new TextField(
-                          controller: traveledDistanceController,
-                          enabled: false,
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 18.0, fontWeight: FontWeight.bold,),
+                            distanceTraveledVal.toStringAsFixed(1),
+                            textAlign: TextAlign.center,
+                            style: new TextStyle(fontSize: 30.0, fontWeight: FontWeight.bold)
                         ),
                       ),
                       new Container(
-                        //width: 300.0,
-                        //height: 20.0,
-                        //color: Colors.blue,
                         child: new Text(
                           'Distance Traveled(mi)',
                           textAlign: TextAlign.center,
                           style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-
-
                         ),
                       ),
                     ],
                   ),
                 ),
-
-
-
+              ],
+            ),
+            new Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
                 new Container(
                   child: new Column(
                     mainAxisAlignment: MainAxisAlignment.center ,
                     crossAxisAlignment: CrossAxisAlignment.center,
-
                     children: <Widget>[
-
                       new Container(
-                        width: 150.0,
-                        height: 40.0,
-                        //color: Colors.blue,
-                        child: new TextField(
-                          controller: leftDistanceController,
-                          enabled: false,
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 18.0, fontWeight: FontWeight.bold,),
+//                        width: 150.0,
+//                        height: 40.0,
+                        child: new Text(
+                            aveSpeedVal.toStringAsFixed(1),
+                            textAlign: TextAlign.center,
+                            style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)
                         ),
                       ),
-
                       new Container(
-                        //width: 300.0,
-                        //height: 20.0,
-                        //color: Colors.blue,
                         child: new Text(
-                          'Remaining Distance(mi)',
+                          isKph ? 'Average Speed(kph)' : 'Average Speed(mph)',
                           textAlign: TextAlign.center,
                           style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-
-
                         ),
                       ),
                     ],
                   ),
                 ),
-
-
+                new Container(
+                  child: new Column(
+                    mainAxisAlignment: MainAxisAlignment.center ,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      new Container(
+//                        width: 150.0,
+//                        height: 40.0,
+                        child: new Text(
+                            distanceLeftVal.toStringAsFixed(1),
+                            textAlign: TextAlign.center,
+                            style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)
+                        ),
+                      ),
+                      new Container(
+                        child: new Text(
+                          'Remaining Distance(mi)',
+                          textAlign: TextAlign.center,
+                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-
-
-
-
-
-
-
-
+            //Debug optional Widgets
             new Container(
-
-
-        //decoration: new BoxDecoration(color: Colors.black),
+              //height: 40.0,
+              child: showDebug ? new Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
+                  new Column(
+                    children: <Widget>[
+                      new Container(
+                        // width: 100.0,
+                        //height: 20.0,
+                        child: new Text(
+                            countVal.toString(),
+                            textAlign: TextAlign.center,
+                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
+                        ),
+                      ),
+                      new Container(
+                          child: new Text('Count')
+                      )
+                    ],
+                  ),
+                  new Column(
+                    children: <Widget>[
+                      new Container(
+                        //width: 100.0,
+                        // height: 20.0,
+                        child: new Text(
+                            latVal.toString(),
+                            textAlign: TextAlign.center,
+                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
+                        ),
+                      ),
+                      new Container(
+                          child: new Text('Latitude')
+                      )
+                    ],
+                  ),
+                  new Column(
+                    children: <Widget>[
+                      new Container(
+                        //width: 100.0,
+                        //height: 20.0,
+                        child: new Text(
+                            longVal.toString(),
+                            textAlign: TextAlign.center,
+                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
+                        ),
+                      ),
+                      new Container(
+                          child: new Text('Longitude')
+                      )
+                    ],
+                  ),
+                  new Column(
+                    children: <Widget>[
+                      new Container(
+                        //width: 100.0,
+                        //height: 20.0,
+                        child: new Text(
+                            altVal.round().toString(),
+                            textAlign: TextAlign.center,
+                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
+                        ),
+                      ),
+                      new Container(
+                          child: new Text(isMeters ? 'Altitude(m)' : 'Altitude(ft)')
+                      )
+                    ],
+                  ),
+                ],
+              ) : null,
+            ),
+            new Container(
         child: new Column(
         children: <Widget>[
-
           new Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
@@ -973,20 +1052,9 @@ class _MapPageState extends State<MapPage> {
                     Navigator.push(context, MaterialPageRoute(builder:
                         (context) => SavedTrails(trails: trails, darkTheme: settings.isDarkTheme, callback: (str, trail) => savedTrailsOption(str, trail))));
                   }
-
               )
             ],
-
           ),
-
-
-
-
-
-
-
-
-
                   new Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: <Widget>[
@@ -995,19 +1063,13 @@ class _MapPageState extends State<MapPage> {
                           elevation: 2.0,
                           color: isRecording ? Colors.red : Colors.green,
                           onPressed: toggleRecording),
-
-
                       new RaisedButton(
                           child:  Text("Save"),
                           padding: const EdgeInsets.all(8.0),
                           onPressed: _showDialog
                       ),
-
-
                     ],
-
                   ),
-
                 ],
               ),
             ),
@@ -1017,7 +1079,6 @@ class _MapPageState extends State<MapPage> {
           ],
         ),
       ),
-
     ),
     );
   }
