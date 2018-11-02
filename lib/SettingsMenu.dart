@@ -48,6 +48,7 @@ class _SelectionControl extends State<SettingsMenu> {
     bool isMetricSpeed = widget.settings.isMetricSpeed;
     bool isMetricDist = widget.settings.isMetricDist;
     bool isDarkTheme = widget.settings.isDarkTheme;
+    bool isShowDebug = widget.settings.showDebug;
 
     return MaterialApp(
       theme: theme,
@@ -83,6 +84,14 @@ class _SelectionControl extends State<SettingsMenu> {
                             setState(() {
                               widget.settings.setDarkTheme = value;
                               toggleColor();
+                            });
+                            updatePref(value);
+                          }),
+                      SwitchListTile(title: Text('Debug values: '),
+                          value: isShowDebug,
+                          onChanged: (bool value) {
+                            setState(() {
+                              widget.settings.setDebug = value;
                             });
                             updatePref(value);
                           })
