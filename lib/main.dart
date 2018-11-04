@@ -178,14 +178,19 @@ class _MapPageState extends State<MapPage> {
 
   getData(String uName){
     print("Attempting to receive from database...");
-    var query = FirebaseDatabase.instance.reference().child("Trails").child("trail-hello world-9d6bfd70-bd30-11e8-861d-8fbc26a2b73a");
+    var list;
+    var query = FirebaseDatabase.instance.reference();
     query.once()
         .then((DataSnapshot snapshot) {
     var key = snapshot.key;
-    var value = snapshot.value;
-    print("key: $key");
-    print("value: $value");
+    var temp = snapshot.value;
+    var test = temp["Trails"]["points"];
+    //Trail T = test;
+    print(test);
     });
+
+//    for (var i in list)
+//    print(list[i]);
   }
 
 
@@ -1049,8 +1054,8 @@ class _MapPageState extends State<MapPage> {
                   child: Text("Trails"),
                   onPressed: () {
                     getData("test");
-                    Navigator.push(context, MaterialPageRoute(builder:
-                        (context) => SavedTrails(trails: trails, darkTheme: settings.isDarkTheme, callback: (str, trail) => savedTrailsOption(str, trail))));
+                    //Navigator.push(context, MaterialPageRoute(builder:
+                    //    (context) => SavedTrails(trails: trails, darkTheme: settings.isDarkTheme, callback: (str, trail) => savedTrailsOption(str, trail))));
                   }
               )
             ],
