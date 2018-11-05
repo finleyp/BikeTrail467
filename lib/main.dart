@@ -273,7 +273,7 @@ class _MapPageState extends State<MapPage> {
 
       setState(() {
         speedVal = 0.0;
-        aveSpeedVal = 0.0;
+        //aveSpeedVal = 0.0;
       });
 
     }
@@ -519,6 +519,17 @@ class _MapPageState extends State<MapPage> {
       countController.text = "Update Count: " + count.toString();
 
       print('Clear Polylines');
+
+      setState(() {
+        speedVal = 0.0;
+        timeVal = "00:00:00:00";
+        distanceTraveledVal = 0.000;
+        aveSpeedVal = 0.0;
+        altVal = 0.0;
+        countVal = 0;
+        latVal = 0.0;
+        longVal = 0.0;
+      });
 
       buildFromJson();
 
