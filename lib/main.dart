@@ -297,7 +297,7 @@ class _MapPageState extends State<MapPage> {
 
           tempSpeed = position.speed.toDouble();
           //Unit conversions, rounding, and string building
-          double speed = convertSpeed(tempSpeed);
+          double speed = tempSpeed;
           double altitude = convertAlt(position.altitude);
 
           //convert the Position object to Location object to be usable with map_view
@@ -338,8 +338,8 @@ class _MapPageState extends State<MapPage> {
 
 
           setState(() {
-            speedVal = speed;
-            aveSpeedVal = aveSpeed;
+            speedVal = convertSpeed(speed);
+            aveSpeedVal = convertSpeed(aveSpeed);
             countVal = count;
             latVal = loc.latitude;
             longVal = loc.longitude;
