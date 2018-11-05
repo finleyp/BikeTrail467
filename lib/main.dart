@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:map_view/map_view.dart';
 import 'package:map_view/polyline.dart';
@@ -9,6 +10,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'package:great_circle_distance/great_circle_distance.dart';
 import 'dart:convert';
 import 'Constants.dart';
 import 'SettingsMenu.dart';
@@ -46,14 +48,14 @@ Settings settings;
 //Themes
 final ThemeData darkTheme = new ThemeData(
   brightness: Brightness.dark,
-  primaryTextTheme: new TextTheme(display2: new TextStyle(color: Colors.white)),
-  textTheme: new TextTheme(display2: new TextStyle(color: Colors.white)),
-  accentTextTheme: new TextTheme(display2: new TextStyle(color: Colors.white)),
+  cardColor: Colors.grey[700],
+  primaryTextTheme: new TextTheme(caption: new TextStyle(color: Colors.white)),
   hintColor: Colors.white,
   highlightColor: Colors.white,
   textSelectionColor: Colors.white,
-  textSelectionHandleColor: Colors.white
-
+  textSelectionHandleColor: Colors.white,
+  buttonColor: Colors.grey,
+  splashColor: Colors.teal,
 );
 final ThemeData lightTheme = new ThemeData(
   brightness: Brightness.light
@@ -128,7 +130,7 @@ class _MapPageState extends State<MapPage> {
   //Dashboard Values
   double speedVal = 0.0;
   double aveSpeedVal = 0.0;
-  String timeVal = "00:00:00";
+  String timeVal = "00:00:00:00";
   double distanceLeftVal = 0.0;
   double distanceTraveledVal = 0.0;
   int countVal = 0;
@@ -282,6 +284,9 @@ class _MapPageState extends State<MapPage> {
     var locationOptions = LocationOptions(
         accuracy: LocationAccuracy.best, distanceFilter: 1);
 
+    Location loc1;
+    Location loc2;
+
     //streamSubscription to get location on update
     positionStream = geolocator.getPositionStream(
         locationOptions).listen(
@@ -302,6 +307,22 @@ class _MapPageState extends State<MapPage> {
           //Add point to polylines object
           newLine.points.add(loc);
 
+          //calculate distance
+          if (loc1 != null && loc2 != null) {
+
+            //move to the next section of the path
+            loc1 = loc2;
+            loc2 = loc;
+
+            calculateDistance(loc1, loc2);
+          } else if (loc1 == null && loc2 == null) {
+            loc1 = loc;
+          } else if (loc1 != null && loc2 == null) {
+            loc2 = loc;
+            //first section of path
+            calculateDistance(loc1, loc2);
+          }
+
           count++;
 
 
@@ -312,6 +333,8 @@ class _MapPageState extends State<MapPage> {
             aveSpeed = ((aveSpeed * ((aveCount-1).toDouble()/aveCount.toDouble()))+(speed * (1.0/aveCount.toDouble())));
             aveCount++;
           }
+
+
 
 
           setState(() {
@@ -358,17 +381,56 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  double convertAlt(var alt){
+  double convertAlt(var altInM){
     if(isMeters) {
       //return meters
-      return alt;
+      return altInM;
 
     } else {
       //Convert to feet -- 1 meter = 3.28084 feet
-      double altFt = alt * 3.28084;
+      double altFt = altInM * 3.28084;
       return altFt;
 
     }
+  }
+
+  double convertDist(var distInKm){
+    if(isMeters) {
+      //return Km
+      return distInKm;
+
+    } else {
+      //Convert to miles -- 1 meter = 3.28084 feet
+      double dist = distInKm / 1.609;
+      return dist;
+
+    }
+  }
+
+  double dist = 0.0;
+
+  void calculateDistance(Location loc1, Location loc2) async {
+    
+    /// Source for calculation, needed because all the plugins don't work
+    ///
+    /// https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
+    ///
+    /// author: https://stackoverflow.com/users/1090562/salvador-dali
+
+    var p = 0.017453292519943295;    // Math.PI / 180
+    var c = math.cos;
+    var a = 0.5 - c((loc2.latitude - loc1.latitude) * p)/2 +
+        c(loc1.latitude * p) * c(loc2.latitude * p) *
+            (1 - c((loc2.longitude - loc1.longitude) * p))/2;
+
+    var distanceInKm = 12742 * math.asin(math.sqrt(a));
+
+    
+    setState(() {
+      distanceTraveledVal += distanceInKm;
+    });
+
+    dist += distanceInKm;
   }
 
 
@@ -417,25 +479,22 @@ class _MapPageState extends State<MapPage> {
 
     settings = new Settings(await getSpeedPref(), await getDistPref(), await getDarkPref(), await getDebugPref());
 
-    print("Getting Settings");
-    print(settings.isMetricSpeed);
-    print(settings.isMetricDist);
-    print(settings.isDarkTheme);
-    print(settings.showDebug);
-
     return settings;
   }
 
 
   //saveTrail Method
   //woo time to save
-  void saveTrail(String trailName, List<Polyline> lines){
+  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance){
 
     String id = uuid.v1();
     String fileName = "trail-" + trailName + "-" + id;
 
     if(count > 1) {
       Map<String, dynamic> tInfo = lines[0].toMap();
+      tInfo["time"] = time;
+      tInfo["avgSpeed"] = avgSpeed;
+      tInfo["distance"] = distance;
       //lines.forEach((line) => print(line.toMap()));
 
       //Function call to add new trail onto the database
@@ -445,7 +504,6 @@ class _MapPageState extends State<MapPage> {
       this.setState(() =>
       trailContent = json.decode(trailsJsonFile.readAsStringSync()));
       print("saved: $fileName");
-      print(trailContent);
 
 //      print("LOOK HERE: " + lines[0].points.toString());
 //
@@ -468,7 +526,9 @@ class _MapPageState extends State<MapPage> {
   }
 
   //Builds a List of trail objects for the saved trails list
-  void generateTrails(String id, String name, List<Location> points, Polyline polyline, String description) {
+  void generateTrails(String id, String name, List<Location> points,
+      Polyline polyline, String description, String time, double avgSpeed, double distance) {
+
 
     bool exists = false;
 
@@ -513,13 +573,13 @@ class _MapPageState extends State<MapPage> {
           var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(newPoints, markers,
               width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green", customIcon: true);
 
-          trails.add(new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description));
+          trails.add(new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed));
         } else {
           var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(points, markers,
               width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green", customIcon: true);
 
           trails.add(
-              new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description));
+              new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed));
         }
       }
     } else {
@@ -550,13 +610,13 @@ class _MapPageState extends State<MapPage> {
           var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(newPoints, markers,
               width: 500, height: 200, maptype: StaticMapViewType.terrain, pathColor: "green", customIcon: true);
 
-          trails.add(new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description));
+          trails.add(new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed));
         } else {
           var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(points, markers,
               width: 500, height: 200, maptype: StaticMapViewType.terrain, pathColor: "green", customIcon: true);
 
           trails.add(
-              new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description));
+              new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed));
         }
       }
     }
@@ -644,6 +704,10 @@ class _MapPageState extends State<MapPage> {
             //we need to get the map form the map to get the list
             List<Location> points = [];
 
+            var time = trailContent["time"];
+            var avgSpeed = trailContent["avgSpeed"];
+            var distance = trailContent["distance"];
+
             //loadLines = [];
             for(var pointMap in trailContent["points"]){
               //can probs reduce to one line later
@@ -658,7 +722,7 @@ class _MapPageState extends State<MapPage> {
 
             loadLines.add(line);
 
-            generateTrails(id, name, points, line, "Temp Description");
+            generateTrails(id, name, points, line, "Temp Description", time, avgSpeed, distance);
 
           }
         }
@@ -896,14 +960,14 @@ class _MapPageState extends State<MapPage> {
 //                        width: 150.0,
 //                        height: 40.0,
                         child: new Text(
-                            distanceTraveledVal.toStringAsFixed(1),
+                            convertDist(distanceTraveledVal).toStringAsFixed(3),
                             textAlign: TextAlign.center,
                             style: new TextStyle(fontSize: 30.0, fontWeight: FontWeight.bold)
                         ),
                       ),
                       new Container(
                         child: new Text(
-                          'Distance Traveled(mi)',
+                          isMeters ? 'Distance Traveled(km)' : 'Distance Traveled(mi)',
                           textAlign: TextAlign.center,
                           style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
                         ),
@@ -949,18 +1013,18 @@ class _MapPageState extends State<MapPage> {
 //                        width: 150.0,
 //                        height: 40.0,
                         child: new Text(
-                            distanceLeftVal.toStringAsFixed(1),
+                            "                           "/*distanceLeftVal.toStringAsFixed(1)*/,
                             textAlign: TextAlign.center,
                             style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)
                         ),
                       ),
-                      new Container(
-                        child: new Text(
-                          'Remaining Distance(mi)',
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-                        ),
-                      ),
+//                      new Container(
+//                        child: new Text(
+//                          'Remaining Distance(mi)',
+//                          textAlign: TextAlign.center,
+//                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
+//                        ),
+//                      ),
                     ],
                   ),
                 ),
@@ -1054,8 +1118,10 @@ class _MapPageState extends State<MapPage> {
                   child: Text("Trails"),
                   onPressed: () {
                     getData("test");
-                    //Navigator.push(context, MaterialPageRoute(builder:
-                    //    (context) => SavedTrails(trails: trails, darkTheme: settings.isDarkTheme, callback: (str, trail) => savedTrailsOption(str, trail))));
+
+                    Navigator.push(context, MaterialPageRoute(builder:
+                        (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
+
                   }
               )
             ],
@@ -1119,7 +1185,7 @@ class _MapPageState extends State<MapPage> {
                 onPressed: () {
                   Navigator.pop(context);
                   print(trailNameController.text);
-                  saveTrail(trailNameController.text, polyLines);
+                  saveTrail(trailNameController.text, polyLines, timeVal, aveSpeedVal, distanceTraveledVal);
                   trailNameController.text = "";
                 })
           ],

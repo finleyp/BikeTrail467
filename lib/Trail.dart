@@ -11,7 +11,13 @@ class Trail {
   final Marker endMarker;
   final Uri uri;
   final String description;
+  final String time;
+  final double length;
+  final double avgSpeed;
 
 
-  Trail(this.id, this.name, this.points, this.startMarker, this.endMarker, this.polyline, this.uri, this.description);
+
+  Trail(this.id, this.name, this.points, this.startMarker,
+      this.endMarker, this.polyline, this.uri, this.description,
+      this.time, this.length, this.avgSpeed);
 }

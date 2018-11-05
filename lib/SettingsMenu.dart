@@ -62,7 +62,7 @@ class _SelectionControl extends State<SettingsMenu> {
                   style: ListTileStyle.list,
                   child: Column(
                     children: <Widget>[
-                      SwitchListTile(title: Text('Speed in kph: '),
+                      SwitchListTile(title: Text('Metric Speed: '),
                           value: isMetricSpeed,
                           onChanged: (bool value) {
                             setState(() {
@@ -70,7 +70,7 @@ class _SelectionControl extends State<SettingsMenu> {
                             });
                             updatePref(value);
                           }),
-                      SwitchListTile(title: Text('Distance in meters: '),
+                      SwitchListTile(title: Text('Metric Distance: '),
                           value: isMetricDist,
                           onChanged: (bool value) {
                             setState(() {
@@ -87,7 +87,7 @@ class _SelectionControl extends State<SettingsMenu> {
                             });
                             updatePref(value);
                           }),
-                      SwitchListTile(title: Text('Debug values: '),
+                      SwitchListTile(title: Text('Debug Values: '),
                           value: isShowDebug,
                           onChanged: (bool value) {
                             setState(() {
