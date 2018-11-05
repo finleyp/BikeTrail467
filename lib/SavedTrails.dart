@@ -128,20 +128,26 @@ class SavedTrailsState extends State<SavedTrails> {
                         subtitle: Text(widget.trails[index].id),
                       ),
                       new Image.network(widget.trails[index].uri.toString()),
-                      new ButtonTheme.bar( // make buttons use the appropriate styles for cards
-                        child: new ButtonBar(
-                          children: <Widget>[
+//                      new ButtonTheme.bar( // make buttons use the appropriate styles for cards
+//                        child: new ButtonBar(
+//                          children: <Widget>[
 //                            new FlatButton(
 //                              child: const Text('View Map'),
 //                              onPressed: () => showOnMap(widget.trails[index]),
 //                            ),
-                          ],
-                        ),
-                      ),
+//                          ],
+//                        ),
+//                      ),
                       new ExpansionTile(
                         title: Text("Stats"),
                         children: <Widget>[
                           new SimpleLineChart(seriesList: (createData(widget.trails[index].points)), trail: widget.trails[index]),
+                          new FlatButton(
+                              child: const Text('View Map'),
+                              splashColor: widget.theme.splashColor,
+                              textColor: widget.theme.accentColor,
+                              onPressed: () => showOnMap(widget.trails[index]),
+                            ),
                         ],
                       ),
                     ],
