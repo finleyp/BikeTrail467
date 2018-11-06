@@ -644,10 +644,13 @@ class _MapPageState extends State<MapPage> {
     }
 
     if (newPoints.length > 300) {
-      shortenPointsList(newPoints);
+      return shortenPointsList(newPoints);
+    } else {
+      print("________" + newPoints.length.toString() + "____________" );
+
+      return newPoints;
     }
 
-    return newPoints;
   }
 
   //Set markers for the static maps
