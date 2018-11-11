@@ -15,6 +15,7 @@ class SavedTrails extends StatefulWidget {
   final ThemeData theme;
   final bool isMeters;
   final bool isKph;
+  final String viewTrail;
 
 
   SavedTrails({
@@ -22,7 +23,8 @@ class SavedTrails extends StatefulWidget {
     @required this.trails, 
     @required this.theme, 
     @required this.isKph, 
-    @required this.isMeters, 
+    @required this.isMeters,
+    @required this.viewTrail,
     @required this.callback}) : super(key: key);
 
   @override
@@ -34,6 +36,9 @@ class SavedTrails extends StatefulWidget {
 
 class SavedTrailsState extends State<SavedTrails> {
 
+  bool viewThisTrail = false;
+  ScrollController sController;
+
   @override
   void initState() {
     // TODO: implement initState
@@ -41,6 +46,20 @@ class SavedTrailsState extends State<SavedTrails> {
 
     isM = widget.isMeters;
     isK = widget.isKph;
+
+    //Used to scroll to a specific trail if selected from map
+    if (widget.viewTrail != null) {
+      viewThisTrail = true;
+      double initialOffset;
+      for (var trail in widget.trails){
+        if (trail.id == widget.viewTrail) {
+          initialOffset = widget.trails.indexOf(trail) * 300.0;
+        }
+      }
+
+      sController = new ScrollController(initialScrollOffset: initialOffset );
+    }
+
   }
 
   void deleteTrail(Trail trail) {
@@ -75,7 +94,7 @@ class SavedTrailsState extends State<SavedTrails> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context)  {
     return MaterialApp(
       theme: widget.theme,
       home: Scaffold(
@@ -84,6 +103,7 @@ class SavedTrailsState extends State<SavedTrails> {
         ),
         body: ListView.builder(
           itemCount: widget.trails.length,
+          controller: sController,
           itemBuilder: (context, index){
             return Dismissible(
               key: Key(widget.trails[index].id),
@@ -127,7 +147,10 @@ class SavedTrailsState extends State<SavedTrails> {
                         title: Text(widget.trails[index].name),
                         subtitle: Text(widget.trails[index].id),
                       ),
-                      new Image.network(widget.trails[index].uri.toString()),
+                        new FadeInImage.assetNetwork(
+                            placeholder: widget.theme == ThemeData.light() ? "lib/assets/staticmap.png": "lib/assets/staticmapdark.png",
+                            image: widget.trails[index].uri.toString()),
+//                      new Image.network(widget.trails[index].uri.toString()),
 //                      new ButtonTheme.bar( // make buttons use the appropriate styles for cards
 //                        child: new ButtonBar(
 //                          children: <Widget>[
@@ -140,6 +163,7 @@ class SavedTrailsState extends State<SavedTrails> {
 //                      ),
                       new ExpansionTile(
                         title: Text("Stats"),
+                        initiallyExpanded: viewThisTrail ? widget.viewTrail == widget.trails[index].id ? true : false: false,
                         children: <Widget>[
                           new SimpleLineChart(seriesList: (createData(widget.trails[index].points)), trail: widget.trails[index]),
                           new FlatButton(

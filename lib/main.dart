@@ -33,6 +33,7 @@ var geolocator = Geolocator();
 
 List<Polyline> polyLines = new List();
 List<Polyline> loadLines = new List();
+List<Marker> loadMarkers = new List();
 
 List<Trail> trails = new List();
 
@@ -107,6 +108,7 @@ Polyline loadLine = new Polyline(
     width: 15.0,
     color: Colors.black,
     jointType: FigureJointType.round);
+
 
 
 void main(){
@@ -216,16 +218,55 @@ class _MapPageState extends State<MapPage> {
       location = new Location(pos.latitude, pos.longitude);
       mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
       buildFromJson();
+
     }else {
       mapView.onMapReady.listen((Null _) {
         mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
         loadLines.clear();
+        loadMarkers.clear();
         buildSingle(list);
-
         print('Setting Polylines from local storage_________________________________________');
-
       });
     }
+
+    //Listener for marker taps
+    mapView.onTouchAnnotation.listen((annotation) {
+      print("marker ${annotation.id} tapped");
+
+        for (var line in loadLines) {
+          if (line.id == annotation.id) {
+            mapView.addPolyline(line);
+          }
+        }
+    });
+
+    //Listener for infoWindow taps
+    mapView.onInfoWindowTapped.listen((marker) {
+      print("infoWindow ${marker.id} tapped");
+
+      mapView.dismiss();
+
+     // _showInfoDialog(marker);
+      Navigator.push(context, MaterialPageRoute(builder:
+          (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: marker.id, callback: (str, trail) => savedTrailsOption(str, trail))));
+    });
+
+    //Listener for polyline taps
+    mapView.onTouchPolyline.listen((polyline) {
+      print("polyline ${polyline.id} tapped");
+
+      mapView.removePolyline(polyline);
+
+    });
+
+
+    //Listen for map taps
+//    mapView.onMapTapped
+//        .listen((location) {
+//          print("Touched location $location");
+//          mapView.clearPolylines();
+//    });
+
 
   }
 
@@ -631,6 +672,9 @@ class _MapPageState extends State<MapPage> {
         }
       }
     }
+
+    sortTrails();
+
   }
 
   //Recursive function to reduce the number of points in the list for use with the static maps
@@ -720,7 +764,7 @@ class _MapPageState extends State<MapPage> {
 
             var time = trailContent["time"];
             var avgSpeed = trailContent["avgSpeed"];
-            var distance = trailContent["distance"];
+            double distance = trailContent["distance"];
 
             //loadLines = [];
             for(var pointMap in trailContent["points"]){
@@ -728,7 +772,7 @@ class _MapPageState extends State<MapPage> {
               Location temp = Location.fromMapFull(pointMap);
               points.add(temp);
             }
-            Polyline line = new Polyline(trailContent["id"],
+            Polyline line = new Polyline(id,
                 points,
                 width: 15.0,
                 color: Colors.green,
@@ -736,12 +780,33 @@ class _MapPageState extends State<MapPage> {
 
             loadLines.add(line);
 
+            //Make marker for polyline
+
+            String titleString = "$name | " + distance.toStringAsFixed(2);
+
+            Marker marker = new Marker(
+              id,
+              titleString,
+              points[0].latitude,
+              points[0].longitude,
+              color: Colors.green,
+              markerIcon: new MarkerIcon(
+                "lib/assets/bike-icon.png",
+                height: 75.0,
+                width: 75.0,
+              ),
+            );
+
+            loadMarkers.add(marker);
+
+
             generateTrails(id, name, points, line, "Temp Description", time, avgSpeed, distance);
 
           }
         }
       });
-      mapView.setPolylines(loadLines);
+      //mapView.setPolylines(loadLines);
+      mapView.setMarkers(loadMarkers);
     });
   }
 
@@ -880,6 +945,12 @@ class _MapPageState extends State<MapPage> {
         timeVal = stopWatch.elapsed.toString();
       });
     }
+  }
+
+  void sortTrails() {
+    trails.sort((a, b) {
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
   }
 
   /*
@@ -1135,7 +1206,6 @@ class _MapPageState extends State<MapPage> {
 
                     Navigator.push(context, MaterialPageRoute(builder:
                         (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
-
                   }
               )
             ],
@@ -1208,6 +1278,34 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  _showInfoDialog(Marker marker) async {
+    await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return new AlertDialog(
+          contentPadding: const EdgeInsets.all(16.0),
+          content: new Row(
+            children: <Widget>[
+              new Expanded(
+                child: new Text(
+                  marker.id
+                ),
+              )
+            ],
+          ),
+          actions: <Widget>[
+            new FlatButton(
+                child: const Text('Exit'),
+                onPressed: () {
+                  Navigator.pop(context);
+                }),
+          ],
+        );
+      },
+    );
+  }
+
   void choiceAction(String choice) {
     if (choice == Constants.Settings){
       Navigator.push(context, MaterialPageRoute(builder:
@@ -1216,3 +1314,4 @@ class _MapPageState extends State<MapPage> {
   }
 
 }
+
