@@ -169,6 +169,7 @@ class _MapPageState extends State<MapPage> {
   bool fileExists = false;
   Map<String, dynamic> trailContent;
 
+  double dist = 0.0;
 
 
 
@@ -244,7 +245,8 @@ class _MapPageState extends State<MapPage> {
 
       mapView.dismiss();
 
-     // _showInfoDialog(marker);
+      //Navigate to saved trails list at certain trail
+      //TODO: decide to go to savedTrails or localTrails
       Navigator.push(context, MaterialPageRoute(builder:
           (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: marker.id, callback: (str, trail) => savedTrailsOption(str, trail))));
     });
@@ -256,16 +258,6 @@ class _MapPageState extends State<MapPage> {
       mapView.removePolyline(polyline);
 
     });
-
-
-    //Listen for map taps
-//    mapView.onMapTapped
-//        .listen((location) {
-//          print("Touched location $location");
-//          mapView.clearPolylines();
-//    });
-
-
   }
 
   void buildSingle(List<Location> list){
@@ -446,7 +438,6 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  double dist = 0.0;
 
   void calculateDistance(Location loc1, Location loc2) async {
     
@@ -780,7 +771,7 @@ class _MapPageState extends State<MapPage> {
 
             //Make marker for polyline
 
-            String titleString = "$name | " + distance.toStringAsFixed(2);
+            String titleString = isMeters ? "$name | " + convertDist(distance).toStringAsFixed(2) + " km" : "$name | " + convertDist(distance).toStringAsFixed(2) + " mi";
 
             Marker marker = new Marker(
               id,
@@ -893,6 +884,7 @@ class _MapPageState extends State<MapPage> {
     //Clears the saved trails and rebuilds them
     //this ensures that the static map has the correct style
     trails.clear();
+    loadMarkers.clear();
     buildFromJson();
     toggleSettings(settings);
   }
