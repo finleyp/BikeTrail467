@@ -10,7 +10,6 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import 'package:great_circle_distance/great_circle_distance.dart';
 import 'dart:convert';
 import 'Constants.dart';
 import 'SettingsMenu.dart';
@@ -49,7 +48,6 @@ Settings settings;
 //Themes
 final ThemeData darkTheme = new ThemeData(
   brightness: Brightness.dark,
-  cardColor: Colors.grey[700],
   primaryTextTheme: new TextTheme(caption: new TextStyle(color: Colors.white)),
   hintColor: Colors.white,
   highlightColor: Colors.white,
@@ -342,7 +340,7 @@ class _MapPageState extends State<MapPage> {
           double altitude = convertAlt(position.altitude);
 
           //convert the Position object to Location object to be usable with map_view
-          Location loc = new Location.full(position.latitude, position.longitude, 0,
+          Location loc = new Location.full(position.latitude, position.longitude, stopWatch.elapsed.inSeconds,
               position.altitude, position.speed, position.heading, 0.0, 0.0);
 
           //Add point to polylines object
@@ -942,7 +940,7 @@ class _MapPageState extends State<MapPage> {
   void setStopWatchGui(Timer timer){
     if (stopWatch.isRunning) {
       setState(() {
-        timeVal = stopWatch.elapsed.toString();
+        timeVal = stopWatch.elapsed.toString().substring(0, 10);
       });
     }
   }
@@ -1269,7 +1267,7 @@ class _MapPageState extends State<MapPage> {
                 onPressed: () {
                   Navigator.pop(context);
                   print(trailNameController.text);
-                  saveTrail(trailNameController.text, polyLines, timeVal, aveSpeedVal, distanceTraveledVal);
+                  saveTrail(trailNameController.text, polyLines, timeVal, aveSpeed, distanceTraveledVal);
                   trailNameController.text = "";
                 })
           ],
@@ -1278,33 +1276,6 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  _showInfoDialog(Marker marker) async {
-    await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return new AlertDialog(
-          contentPadding: const EdgeInsets.all(16.0),
-          content: new Row(
-            children: <Widget>[
-              new Expanded(
-                child: new Text(
-                  marker.id
-                ),
-              )
-            ],
-          ),
-          actions: <Widget>[
-            new FlatButton(
-                child: const Text('Exit'),
-                onPressed: () {
-                  Navigator.pop(context);
-                }),
-          ],
-        );
-      },
-    );
-  }
 
   void choiceAction(String choice) {
     if (choice == Constants.Settings){
