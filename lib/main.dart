@@ -10,7 +10,6 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import 'package:great_circle_distance/great_circle_distance.dart';
 import 'dart:convert';
 import 'Constants.dart';
 import 'SettingsMenu.dart';
@@ -48,7 +47,6 @@ Settings settings;
 //Themes
 final ThemeData darkTheme = new ThemeData(
   brightness: Brightness.dark,
-  cardColor: Colors.grey[700],
   primaryTextTheme: new TextTheme(caption: new TextStyle(color: Colors.white)),
   hintColor: Colors.white,
   highlightColor: Colors.white,
@@ -169,6 +167,7 @@ class _MapPageState extends State<MapPage> {
   bool fileExists = false;
   Map<String, dynamic> trailContent;
 
+  double dist = 0.0;
 
 
 
@@ -227,6 +226,37 @@ class _MapPageState extends State<MapPage> {
       });
     }
 
+
+    //Listener for marker taps
+    mapView.onTouchAnnotation.listen((annotation) {
+      print("marker ${annotation.id} tapped");
+
+        for (var line in loadLines) {
+          if (line.id == annotation.id) {
+            mapView.addPolyline(line);
+          }
+        }
+    });
+
+    //Listener for infoWindow taps
+    mapView.onInfoWindowTapped.listen((marker) {
+      print("infoWindow ${marker.id} tapped");
+
+      mapView.dismiss();
+
+      //Navigate to saved trails list at certain trail
+      //TODO: decide to go to savedTrails or localTrails
+      Navigator.push(context, MaterialPageRoute(builder:
+          (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: marker.id, callback: (str, trail) => savedTrailsOption(str, trail))));
+    });
+
+    //Listener for polyline taps
+    mapView.onTouchPolyline.listen((polyline) {
+      print("polyline ${polyline.id} tapped");
+
+      mapView.removePolyline(polyline);
+
+    });
   }
 
   void buildSingle(List<Location> list){
@@ -301,7 +331,7 @@ class _MapPageState extends State<MapPage> {
           double altitude = convertAlt(position.altitude);
 
           //convert the Position object to Location object to be usable with map_view
-          Location loc = new Location.full(position.latitude, position.longitude, 0,
+          Location loc = new Location.full(position.latitude, position.longitude, stopWatch.elapsed.inSeconds,
               position.altitude, position.speed, position.heading, 0.0, 0.0);
 
           //Add point to polylines object
@@ -407,7 +437,6 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  double dist = 0.0;
 
   void calculateDistance(Location loc1, Location loc2) async {
 
@@ -722,6 +751,27 @@ class _MapPageState extends State<MapPage> {
 
             loadLines.add(line);
 
+
+            //Make marker for polyline
+
+            String titleString = isMeters ? "$name | " + convertDist(distance).toStringAsFixed(2) + " km" : "$name | " + convertDist(distance).toStringAsFixed(2) + " mi";
+
+            Marker marker = new Marker(
+              id,
+              titleString,
+              points[0].latitude,
+              points[0].longitude,
+              color: Colors.green,
+              markerIcon: new MarkerIcon(
+                "lib/assets/bike-icon.png",
+                height: 75.0,
+                width: 75.0,
+              ),
+            );
+
+            loadMarkers.add(marker);
+
+
             generateTrails(id, name, points, line, "Temp Description", time, avgSpeed, distance);
 
           }
@@ -816,6 +866,7 @@ class _MapPageState extends State<MapPage> {
     //Clears the saved trails and rebuilds them
     //this ensures that the static map has the correct style
     trails.clear();
+    loadMarkers.clear();
     buildFromJson();
     toggleSettings(settings);
   }
@@ -865,7 +916,7 @@ class _MapPageState extends State<MapPage> {
   void setStopWatchGui(Timer timer){
     if (stopWatch.isRunning) {
       setState(() {
-        timeVal = stopWatch.elapsed.toString();
+        timeVal = stopWatch.elapsed.toString().substring(0, 10);
       });
     }
   }
@@ -1221,7 +1272,7 @@ class _MapPageState extends State<MapPage> {
                 onPressed: () {
                   Navigator.pop(context);
                   print(trailNameController.text);
-                  saveTrail(trailNameController.text, polyLines, timeVal, aveSpeedVal, distanceTraveledVal);
+                  saveTrail(trailNameController.text, polyLines, timeVal, aveSpeed, distanceTraveledVal);
                   trailNameController.text = "";
                 })
           ],
