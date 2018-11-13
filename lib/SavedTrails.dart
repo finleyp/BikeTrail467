@@ -72,6 +72,10 @@ class SavedTrailsState extends State<SavedTrails> {
     widget.callback("0", trail);
   }
 
+  void showMap(){
+    widget.callback("2", null);
+  }
+
 
   List<charts.Series<Point, int>> createData(List<Location> points) {
 
@@ -181,10 +185,50 @@ class SavedTrailsState extends State<SavedTrails> {
             );
           },
         ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: 2,
+          fixedColor: Colors.black,
+          items: <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.home),
+                title: new Text("")
+            ),
+            BottomNavigationBarItem(
+              icon: new Icon(Icons.navigation),
+              title: new Text(""),
+            ),
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.playlist_add_check),
+                title: new Text("")
+            )
+          ],
+
+          onTap: _onItemTapped,
+        ),
       ),
+
     );
   }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      if(index == 0){
+        Navigator.pop(context);
+      }
+      if(index == 1){
+        //showMap(null, null,12.0);
+        showMap();
+      }
+      if(index == 2){
+        //Navigator.push(context, MaterialPageRoute(builder:
+        //    (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
+      }
+    });
+  }
+
 }
+
+
 
 double convertSpeed(var speed){
 

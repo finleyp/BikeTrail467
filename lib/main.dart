@@ -827,6 +827,8 @@ class _MapPageState extends State<MapPage> {
       showMap(trail.points, trail.points[middle], 14.0);
     } else if (choice == '1') {
       deleteFile(trail.id);
+    } else if(choice == '2'){
+      showMap(null, null,12.0);
     }
 
   }
