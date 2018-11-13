@@ -32,8 +32,10 @@ var geolocator = Geolocator();
 
 List<Polyline> polyLines = new List();
 List<Polyline> loadLines = new List();
+List<Marker> loadMarkers;
 
 List<Trail> trails = new List();
+
 
 Location onLoadLoc;
 
@@ -215,27 +217,26 @@ class _MapPageState extends State<MapPage> {
       location = new Location(pos.latitude, pos.longitude);
       mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
       buildFromJson();
+
     }else {
       mapView.onMapReady.listen((Null _) {
         mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
         loadLines.clear();
+        loadMarkers.clear();
         buildSingle(list);
-
         print('Setting Polylines from local storage_________________________________________');
-
       });
     }
-
 
     //Listener for marker taps
     mapView.onTouchAnnotation.listen((annotation) {
       print("marker ${annotation.id} tapped");
 
-        for (var line in loadLines) {
-          if (line.id == annotation.id) {
-            mapView.addPolyline(line);
-          }
+      for (var line in loadLines) {
+        if (line.id == annotation.id) {
+          mapView.addPolyline(line);
         }
+      }
     });
 
     //Listener for infoWindow taps
@@ -471,6 +472,8 @@ class _MapPageState extends State<MapPage> {
     // TODO: implement initState?
     super.initState();
 
+    loadMarkers = new List();
+
     //get the users settings
     getSettings().then((result){
       setState(() {
@@ -662,10 +665,12 @@ class _MapPageState extends State<MapPage> {
     }
 
     if (newPoints.length > 300) {
-      shortenPointsList(newPoints);
-    }
+      return shortenPointsList(newPoints);
+    } else {
+      print("________" + newPoints.length.toString() + "____________" );
 
-    return newPoints;
+      return newPoints;
+    }
   }
 
   //Set markers for the static maps
@@ -735,7 +740,7 @@ class _MapPageState extends State<MapPage> {
 
             var time = trailContent["time"];
             var avgSpeed = trailContent["avgSpeed"];
-            var distance = trailContent["distance"];
+            double distance = trailContent["distance"];
 
             //loadLines = [];
             for(var pointMap in trailContent["points"]){
@@ -743,14 +748,13 @@ class _MapPageState extends State<MapPage> {
               Location temp = Location.fromMapFull(pointMap);
               points.add(temp);
             }
-            Polyline line = new Polyline(trailContent["id"],
+            Polyline line = new Polyline(id,
                 points,
                 width: 15.0,
                 color: Colors.green,
                 jointType: FigureJointType.round);
 
             loadLines.add(line);
-
 
             //Make marker for polyline
 
@@ -777,7 +781,8 @@ class _MapPageState extends State<MapPage> {
           }
         }
       });
-      mapView.setPolylines(loadLines);
+      //mapView.setPolylines(loadLines);
+      mapView.setMarkers(loadMarkers);
     });
   }
 
@@ -1161,23 +1166,23 @@ class _MapPageState extends State<MapPage> {
         children: <Widget>[
           new Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              new RaisedButton(
-                  child: Text('Map'),
-                  elevation: 2.0,
-                  onPressed: () => showMap(null, null,12.0)
-              ),
-              new RaisedButton(
-                  child: Text("Trails"),
-                  onPressed: () {
-                    getData("test");
-
-                    Navigator.push(context, MaterialPageRoute(builder:
-                        (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
-
-                  }
-              )
-            ],
+//            children: <Widget>[
+//              new RaisedButton(
+//                  child: Text('Map'),
+//                  elevation: 2.0,
+//                  onPressed: () => showMap(null, null,12.0)
+//              ),
+//              new RaisedButton(
+//                  child: Text("Trails"),
+//                  onPressed: () {
+//                    getData("test");
+//
+//                    Navigator.push(context, MaterialPageRoute(builder:
+//                        (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
+//
+//                  }
+//              )
+//            ],
           ),
                   new Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,

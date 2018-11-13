@@ -56,8 +56,6 @@ class SavedTrailsState extends State<SavedTrails> with AfterLayoutMixin<SavedTra
       isDark = false;
     }
 
-    print("isDark = $isDark");
-
     //Used to scroll to a specific trail if selected from map
     if (widget.viewTrail != null) {
       viewThisTrail = true;
