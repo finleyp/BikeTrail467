@@ -32,7 +32,6 @@ var geolocator = Geolocator();
 
 List<Polyline> polyLines = new List();
 List<Polyline> loadLines = new List();
-List<Marker> loadMarkers = new List();
 
 List<Trail> trails = new List();
 
@@ -106,7 +105,6 @@ Polyline loadLine = new Polyline(
     width: 15.0,
     color: Colors.black,
     jointType: FigureJointType.round);
-
 
 
 void main(){
@@ -217,16 +215,17 @@ class _MapPageState extends State<MapPage> {
       location = new Location(pos.latitude, pos.longitude);
       mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
       buildFromJson();
-
     }else {
       mapView.onMapReady.listen((Null _) {
         mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), zoom));
         loadLines.clear();
-        loadMarkers.clear();
         buildSingle(list);
+
         print('Setting Polylines from local storage_________________________________________');
+
       });
     }
+
 
     //Listener for marker taps
     mapView.onTouchAnnotation.listen((annotation) {
@@ -304,7 +303,7 @@ class _MapPageState extends State<MapPage> {
 
       setState(() {
         speedVal = 0.0;
-        //aveSpeedVal = 0.0;
+        aveSpeedVal = 0.0;
       });
 
     }
@@ -398,7 +397,7 @@ class _MapPageState extends State<MapPage> {
 
   //String
   double convertSpeed(var speed){
-    
+
     if(isKph) {
       //Convert from Mps to Kph -- 1 mps = 3.6 kph
       double speedKph = speed * 3.6;
@@ -440,7 +439,7 @@ class _MapPageState extends State<MapPage> {
 
 
   void calculateDistance(Location loc1, Location loc2) async {
-    
+
     /// Source for calculation, needed because all the plugins don't work
     ///
     /// https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
@@ -455,7 +454,7 @@ class _MapPageState extends State<MapPage> {
 
     var distanceInKm = 12742 * math.asin(math.sqrt(a));
 
-    
+
     setState(() {
       distanceTraveledVal += distanceInKm;
     });
@@ -549,17 +548,6 @@ class _MapPageState extends State<MapPage> {
       countController.text = "Update Count: " + count.toString();
 
       print('Clear Polylines');
-
-      setState(() {
-        speedVal = 0.0;
-        timeVal = "00:00:00:00";
-        distanceTraveledVal = 0.000;
-        aveSpeedVal = 0.0;
-        altVal = 0.0;
-        countVal = 0;
-        latVal = 0.0;
-        longVal = 0.0;
-      });
 
       buildFromJson();
 
@@ -661,9 +649,6 @@ class _MapPageState extends State<MapPage> {
         }
       }
     }
-
-    sortTrails();
-
   }
 
   //Recursive function to reduce the number of points in the list for use with the static maps
@@ -677,13 +662,10 @@ class _MapPageState extends State<MapPage> {
     }
 
     if (newPoints.length > 300) {
-      return shortenPointsList(newPoints);
-    } else {
-      print("________" + newPoints.length.toString() + "____________" );
-
-      return newPoints;
+      shortenPointsList(newPoints);
     }
 
+    return newPoints;
   }
 
   //Set markers for the static maps
@@ -753,7 +735,7 @@ class _MapPageState extends State<MapPage> {
 
             var time = trailContent["time"];
             var avgSpeed = trailContent["avgSpeed"];
-            double distance = trailContent["distance"];
+            var distance = trailContent["distance"];
 
             //loadLines = [];
             for(var pointMap in trailContent["points"]){
@@ -761,13 +743,14 @@ class _MapPageState extends State<MapPage> {
               Location temp = Location.fromMapFull(pointMap);
               points.add(temp);
             }
-            Polyline line = new Polyline(id,
+            Polyline line = new Polyline(trailContent["id"],
                 points,
                 width: 15.0,
                 color: Colors.green,
                 jointType: FigureJointType.round);
 
             loadLines.add(line);
+
 
             //Make marker for polyline
 
@@ -794,8 +777,7 @@ class _MapPageState extends State<MapPage> {
           }
         }
       });
-      //mapView.setPolylines(loadLines);
-      mapView.setMarkers(loadMarkers);
+      mapView.setPolylines(loadLines);
     });
   }
 
@@ -896,6 +878,8 @@ class _MapPageState extends State<MapPage> {
       showMap(trail.points, trail.points[middle], 14.0);
     } else if (choice == '1') {
       deleteFile(trail.id);
+    } else if(choice == '2'){
+      showMap(null, null,12.0);
     }
 
   }
@@ -935,12 +919,6 @@ class _MapPageState extends State<MapPage> {
         timeVal = stopWatch.elapsed.toString().substring(0, 10);
       });
     }
-  }
-
-  void sortTrails() {
-    trails.sort((a, b) {
-      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-    });
   }
 
   /*
@@ -1196,6 +1174,7 @@ class _MapPageState extends State<MapPage> {
 
                     Navigator.push(context, MaterialPageRoute(builder:
                         (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
+
                   }
               )
             ],
@@ -1224,10 +1203,44 @@ class _MapPageState extends State<MapPage> {
           ],
         ),
       ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: 0,
+          fixedColor: Colors.black,
+          items: <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.home),
+                title: new Text("")
+            ),
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.navigation),
+                title: new Text(""),
+            ),
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.playlist_add_check),
+                title: new Text("")
+            )
+          ],
+
+          onTap: _onItemTapped,
+        ),
+
     ),
     );
   }
+  void _onItemTapped(int index) {
+    setState(() {
+      if(index == 0){
 
+      }
+      if(index == 1){
+        showMap(null, null,12.0);
+      }
+      if(index == 2){
+        Navigator.push(context, MaterialPageRoute(builder:
+            (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
+      }
+    });
+  }
   //Have user enter trail information
   _showDialog() async {
     await showDialog<String>(
@@ -1268,7 +1281,6 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-
   void choiceAction(String choice) {
     if (choice == Constants.Settings){
       Navigator.push(context, MaterialPageRoute(builder:
@@ -1277,4 +1289,3 @@ class _MapPageState extends State<MapPage> {
   }
 
 }
-
