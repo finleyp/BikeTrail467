@@ -10,7 +10,6 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import 'package:great_circle_distance/great_circle_distance.dart';
 import 'dart:convert';
 import 'Constants.dart';
 import 'SettingsMenu.dart';
@@ -33,6 +32,7 @@ var geolocator = Geolocator();
 
 List<Polyline> polyLines = new List();
 List<Polyline> loadLines = new List();
+List<Polyline> dbLines = new List();
 
 List<Trail> trails = new List();
 
@@ -173,29 +173,64 @@ class _MapPageState extends State<MapPage> {
 
 
   sendData(dynamic temp, String uName){
+    DatabaseReference database = FirebaseDatabase.instance.reference().child("PattonTest").child(uName);
+    print("Attempting to send to database...");
+    database.set(temp);
+  }
+
+  sendDataAll(dynamic temp, String uName){
     DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName);
     print("Attempting to send to database...");
     database.set(temp);
   }
 
-  getData(String uName){
-    print("Attempting to receive from database...");
-    var list;
-    var query = FirebaseDatabase.instance.reference();
-    query.once()
-        .then((DataSnapshot snapshot) {
-    var key = snapshot.key;
-    var temp = snapshot.value;
-    var test = temp["Trails"]["points"];
-    //Trail T = test;
-    print(test);
-    });
+  getData(){
+    var ref =  FirebaseDatabase.instance.reference().child("PattonTest");
+    ref.onChildAdded.listen((event) {
 
-//    for (var i in list)
-//    print(list[i]);
+      handler(event);
+    });
   }
 
+  handler(event){
+    var test = new Map<String, dynamic>.from(event.snapshot.value);
+    var jointType, color, width, id, points,name, fileName, avgSpeed,time,distance;
+    jointType = test["jointType"];
+    color = test["color"];
+    width = test["width"];
+    id = test["id"];
+    points = test["points"];
+    name = test["name"];
+    fileName = test["fileName"];
+    avgSpeed = test["avgSpeed"];
+    time = test["time"];
+    distance = test["distance"];
+    Polyline line = buildFromdb(jointType, color, width, id, points);
+    generateTrails(fileName, name, line.points,
+        line, "this is a test", time, avgSpeed.toDouble(), distance);
+    //print(list[list.length-1]);
+  }
 
+  Polyline buildFromdb(jointType, color, width, id, points){
+    var attempt = new List.from(points);
+    List<Location> pointslist = [];
+    for(var pointMap in attempt){
+      Location temp = new Location.fromMap(pointMap);
+      pointslist.add(temp);
+    }
+    var a = color["a"];
+    var r = color["r"];
+    var b = color["b"];
+    var g = color["g"];
+    Polyline line = new Polyline(
+        id,
+        pointslist,
+        width: width.toDouble(),
+        color: Color.fromARGB(a, r, g, b),
+        jointType: FigureJointType.round);
+    dbLines.add(line);
+    return line;
+  }
 
   showMap(List<Location> list, Location location, double zoom) async {
     //this needs to be updated with gps location on start up
@@ -498,8 +533,11 @@ class _MapPageState extends State<MapPage> {
       //lines.forEach((line) => print(line.toMap()));
 
       //Function call to add new trail onto the database
-      sendData(tInfo , fileName);
+
       createJson(tInfo, dir, fileName);
+      tInfo["name"] = trailName;
+      tInfo["fileName"] = fileName;
+      sendData(tInfo , fileName);
 
       this.setState(() =>
       trailContent = json.decode(trailsJsonFile.readAsStringSync()));
@@ -1131,10 +1169,11 @@ class _MapPageState extends State<MapPage> {
               new RaisedButton(
                   child: Text("Trails"),
                   onPressed: () {
-                    getData("test");
+                    //getData("test");
+                    getData();
 
                     Navigator.push(context, MaterialPageRoute(builder:
-                        (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
+                      (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
 
                   }
               )

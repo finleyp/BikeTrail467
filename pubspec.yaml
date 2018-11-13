@@ -35,7 +35,7 @@ dependencies:
 
   shared_preferences: ^0.4.3
   charts_flutter: ^0.5.0
-  great_circle_distance: ^1.0.1
+
 
   map_view:
       git:
