@@ -35,6 +35,7 @@ List<Polyline> loadLines = new List();
 List<Polyline> dbLines = new List();
 
 List<Trail> trails = new List();
+List<Trail> localTrails = new List();
 
 Location onLoadLoc;
 
@@ -207,7 +208,7 @@ class _MapPageState extends State<MapPage> {
     distance = test["distance"];
     Polyline line = buildFromdb(jointType, color, width, id, points);
     generateTrails(fileName, name, line.points,
-        line, "this is a test", time, avgSpeed.toDouble(), distance);
+        line, "this is a test", time, avgSpeed.toDouble(), distance, true);
     //print(list[list.length-1]);
   }
 
@@ -548,7 +549,7 @@ class _MapPageState extends State<MapPage> {
 //      List<Location> points = lines[0].points;
 //
 //      //Add to the saved trail list
-//      generateTrails(fileName, trailName, points, lines[0], "Trail");
+//      generateTrails(fileName, trailName, points, lines[0], "Trail", false);
 
       //Clear the polyLines object and set fileExists back to false
       polyLines.clear();
@@ -576,8 +577,9 @@ class _MapPageState extends State<MapPage> {
 
   //Builds a List of trail objects for the saved trails list
   void generateTrails(String id, String name, List<Location> points,
-      Polyline polyline, String description, String time, double avgSpeed, double distance) {
+      Polyline polyline, String description, String time, double avgSpeed, double distance, bool isDB) {
 
+    Trail newTrail;
 
     bool exists = false;
 
@@ -602,6 +604,11 @@ class _MapPageState extends State<MapPage> {
           exists = true;
         }
       });
+      localTrails.forEach((element) {
+        if (element.id == id) {
+          exists = true;
+        }
+      });
 
       //if the trail doesn't exist add the trail
       if (!exists) {
@@ -622,13 +629,19 @@ class _MapPageState extends State<MapPage> {
           var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(newPoints, markers,
               width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green", customIcon: true);
 
-          trails.add(new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed));
+
+          newTrail = new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed);
         } else {
           var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(points, markers,
               width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green", customIcon: true);
 
-          trails.add(
-              new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed));
+          newTrail = new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed);
+        }
+
+        if (isDB) {
+          localTrails.add(newTrail);
+        } else {
+          trails.add(newTrail);
         }
       }
     } else {
@@ -636,6 +649,11 @@ class _MapPageState extends State<MapPage> {
 
       trails.forEach((element) {
         if (element.id == id){
+          exists = true;
+        }
+      });
+      localTrails.forEach((element) {
+        if (element.id == id) {
           exists = true;
         }
       });
@@ -659,13 +677,18 @@ class _MapPageState extends State<MapPage> {
           var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(newPoints, markers,
               width: 500, height: 200, maptype: StaticMapViewType.terrain, pathColor: "green", customIcon: true);
 
-          trails.add(new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed));
+          newTrail = new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed);
         } else {
           var staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(points, markers,
               width: 500, height: 200, maptype: StaticMapViewType.terrain, pathColor: "green", customIcon: true);
 
-          trails.add(
-              new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed));
+          newTrail = new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed);
+        }
+
+        if (isDB) {
+          localTrails.add(newTrail);
+        } else {
+          trails.add(newTrail);
         }
       }
     }
@@ -774,7 +797,7 @@ class _MapPageState extends State<MapPage> {
 
             loadLines.add(line);
 
-            generateTrails(id, name, points, line, "Temp Description", time, avgSpeed, distance);
+            generateTrails(id, name, points, line, "Temp Description", time, avgSpeed, distance, false);
 
           }
         }
@@ -1169,11 +1192,20 @@ class _MapPageState extends State<MapPage> {
               new RaisedButton(
                   child: Text("Trails"),
                   onPressed: () {
+
+                    Navigator.push(context, MaterialPageRoute(builder:
+                      (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
+
+                  }
+              ),
+              new RaisedButton(
+                  child: Text("Local Trails"),
+                  onPressed: () {
                     //getData("test");
                     getData();
 
                     Navigator.push(context, MaterialPageRoute(builder:
-                      (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
+                        (context) => SavedTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
 
                   }
               )
