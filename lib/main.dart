@@ -15,6 +15,7 @@ import 'Constants.dart';
 import 'SettingsMenu.dart';
 import 'SavedTrails.dart';
 import 'Trail.dart';
+import 'LocalTrails.dart';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'Settings.dart';
@@ -1257,7 +1258,7 @@ class _MapPageState extends State<MapPage> {
                   onPressed: () {
 
                     Navigator.push(context, MaterialPageRoute(builder:
-                      (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
+                      (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail) => savedTrailsOption(str, trail))));
 
                   }
               ),
@@ -1268,7 +1269,7 @@ class _MapPageState extends State<MapPage> {
                     getData();
 
                     Navigator.push(context, MaterialPageRoute(builder:
-                        (context) => SavedTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
+                        (context) => LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail) => savedTrailsOption(str, trail))));
 
                   }
               )
