@@ -178,7 +178,7 @@ class _MapPageState extends State<MapPage> {
 
 
   sendData(dynamic temp, String uName){
-    DatabaseReference database = FirebaseDatabase.instance.reference().child("PattonTest").child(uName);
+    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName);
     print("Attempting to send to database...");
     database.set(temp);
   }
@@ -190,7 +190,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   getData(){
-    var ref =  FirebaseDatabase.instance.reference().child("PattonTest");
+    var ref =  FirebaseDatabase.instance.reference().child("Trails");
     ref.onChildAdded.listen((event) {
 
       handler(event);
@@ -199,17 +199,38 @@ class _MapPageState extends State<MapPage> {
 
   handler(event){
     var test = new Map<String, dynamic>.from(event.snapshot.value);
-    var jointType, color, width, id, points,name, fileName, avgSpeed,time,distance;
+    var jointType, color, width, id, points, name, fileName, avgSpeed,time,distance;
+
     jointType = test["jointType"];
     color = test["color"];
     width = test["width"];
     id = test["id"];
     points = test["points"];
-    name = test["name"];
-    fileName = test["fileName"];
-    avgSpeed = test["avgSpeed"];
-    time = test["time"];
-    distance = test["distance"];
+    if(test["name"] != null) {
+      name = test["name"];
+    }else{
+      name = "3k";
+    }
+    if(test["fileName"] != null) {
+      fileName = test["fileName"];
+    }else{
+      fileName = "3k";
+    }
+    if(test["avgSpeed"]!= null){
+      avgSpeed = test["avgSpeed"];
+    }else{
+      avgSpeed = 0;
+    }
+    if(test["time"]!= null) {
+      time = test["time"];
+    }else{
+      time = "0";
+    }
+    if(test["distance"]!= null) {
+      distance = test["distance"];
+    }else{
+      distance = 0.0;
+    }
     Polyline line = buildFromdb(jointType, color, width, id, points);
     generateTrails(fileName, name, line.points,
         line, "this is a test", time, avgSpeed.toDouble(), distance, true);
