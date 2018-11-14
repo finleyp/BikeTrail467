@@ -644,7 +644,7 @@ class _MapPageState extends State<MapPage> {
       });
 
       //if the trail doesn't exist add the trail
-      if (!exists) {
+      if (!exists || !isDB) {
 
         Location startPoint = points.first;
         Location endPoint = points.last;
@@ -692,7 +692,7 @@ class _MapPageState extends State<MapPage> {
       });
 
       //if the trail doesn't exist add the trail
-      if (!exists) {
+      if (!exists || !isDB) {
 
         Location startPoint = points.first;
         Location endPoint = points.last;
@@ -727,6 +727,10 @@ class _MapPageState extends State<MapPage> {
     }
 
     sortTrails();
+    sortLocalTrails();
+
+    print("Trails: " + trails.length.toString());
+    print("Local Trails: " + localTrails.length.toString());
 
   }
 
@@ -1003,6 +1007,12 @@ class _MapPageState extends State<MapPage> {
 
   void sortTrails() {
     trails.sort((a, b) {
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+  }
+
+  void sortLocalTrails() {
+    localTrails.sort((a, b) {
       return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
   }
