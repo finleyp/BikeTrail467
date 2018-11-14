@@ -220,7 +220,9 @@ class _MapPageState extends State<MapPage> {
     var attempt = new List.from(points);
     List<Location> pointslist = [];
     for(var pointMap in attempt){
-      Location temp = new Location.fromMap(pointMap);
+      //Location temp = new Location.fromMap(pointMap);
+      Location temp = new Location.full(pointMap["latitude"], pointMap["longitude"], pointMap["time"],
+          pointMap["altitude"].toDouble(), pointMap["speed"].toDouble(), pointMap["heading"], 0.0, 0.0);
       pointslist.add(temp);
     }
     var a = color["a"];
@@ -637,11 +639,16 @@ class _MapPageState extends State<MapPage> {
           exists = true;
         }
       });
+      int count = 0;
       localTrails.forEach((element) {
         if (element.id == id) {
           exists = true;
+        }else{
+          count ++;
         }
       });
+      if(count == localTrails.length)
+        exists = false;
 
       //if the trail doesn't exist add the trail
       if (!exists) {
