@@ -521,7 +521,7 @@ class _MapPageState extends State<MapPage> {
     });
     //get th users current location
     getCurrentLocation();
-
+    getData();
     //Make Stopwatch -- stopped with zero elapsed time
     stopWatch = new Stopwatch();
 
@@ -1265,9 +1265,6 @@ class _MapPageState extends State<MapPage> {
               new RaisedButton(
                   child: Text("Local Trails"),
                   onPressed: () {
-                    //getData("test");
-                    getData();
-
                     Navigator.push(context, MaterialPageRoute(builder:
                         (context) => LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail) => savedTrailsOption(str, trail))));
 
