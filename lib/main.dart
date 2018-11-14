@@ -198,43 +198,22 @@ class _MapPageState extends State<MapPage> {
   }
 
   handler(event){
-    var test = new Map<String, dynamic>.from(event.snapshot.value);
+    var data = new Map<String, dynamic>.from(event.snapshot.value);
     var jointType, color, width, id, points, name, fileName, avgSpeed,time,distance;
 
-    jointType = test["jointType"];
-    color = test["color"];
-    width = test["width"];
-    id = test["id"];
-    points = test["points"];
-    if(test["name"] != null) {
-      name = test["name"];
-    }else{
-      name = "3k";
-    }
-    if(test["fileName"] != null) {
-      fileName = test["fileName"];
-    }else{
-      fileName = "3k";
-    }
-    if(test["avgSpeed"]!= null){
-      avgSpeed = test["avgSpeed"];
-    }else{
-      avgSpeed = 0;
-    }
-    if(test["time"]!= null) {
-      time = test["time"];
-    }else{
-      time = "0";
-    }
-    if(test["distance"]!= null) {
-      distance = test["distance"];
-    }else{
-      distance = 0.0;
-    }
+    jointType = data["jointType"];
+    color = data["color"];
+    width = data["width"];
+    id = data["id"];
+    points = data["points"];
+    name = data["name"];
+    fileName = data["fileName"];
+    avgSpeed = data["avgSpeed"];
+    time = data["time"];
+    distance = data["distance"];
     Polyline line = buildFromdb(jointType, color, width, id, points);
     generateTrails(fileName, name, line.points,
         line, "this is a test", time, avgSpeed.toDouble(), distance, true);
-    //print(list[list.length-1]);
   }
 
   Polyline buildFromdb(jointType, color, width, id, points){
