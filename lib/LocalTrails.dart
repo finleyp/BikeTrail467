@@ -114,7 +114,8 @@ class LocalTrailsState extends State<LocalTrails> with AfterLayoutMixin<LocalTra
 
   @override
   Widget build(BuildContext context)  {
-    return MaterialApp(
+    return Container(
+    child:MaterialApp(
       theme: widget.theme,
       home: Scaffold(
         appBar: AppBar(
@@ -185,6 +186,7 @@ class LocalTrailsState extends State<LocalTrails> with AfterLayoutMixin<LocalTra
           },
         ),
       ),
+    ),
     );
   }
 }
