@@ -223,7 +223,7 @@ class _MapPageState extends State<MapPage> {
     distance = data["distance"];
     Polyline line = buildFromdb(jointType, color, width, id, points);
     generateTrails(fileName, name, line.points,
-        line, "this is a test", time, avgSpeed.toDouble(), distance, true);
+        line, "this is a test", time, avgSpeed.toDouble(), distance.toDouble(), true);
   }
 
   Polyline buildFromdb(jointType, color, width, id, points){
@@ -676,6 +676,7 @@ class _MapPageState extends State<MapPage> {
           count ++;
         }
       });
+      print(localTrails.length);
       if(count == localTrails.length)
         exists = false;
 
