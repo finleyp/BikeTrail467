@@ -16,7 +16,8 @@ import 'SettingsMenu.dart';
 import 'SavedTrails.dart';
 import 'Trail.dart';
 import 'LocalTrails.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'Settings.dart';
 
@@ -94,6 +95,9 @@ bool showDebug = false;
 bool isKph = false;
 bool isMeters = false;
 
+//authenticate stuff following steps in api
+final GoogleSignIn _googleSignIn = GoogleSignIn();
+final FirebaseAuth _auth = FirebaseAuth.instance;
 
 Polyline newLine = new Polyline(
     "1",
@@ -175,7 +179,16 @@ class _MapPageState extends State<MapPage> {
 
   double dist = 0.0;
 
-
+  Future<FirebaseUser> _handleSignIn() async {
+    GoogleSignInAccount googleUser = await _googleSignIn.signIn();
+    GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    FirebaseUser user = await _auth.signInWithGoogle(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    print("signed in " + user.displayName);
+    return user;
+  }
 
   sendData(dynamic temp, String uName){
     DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName);
@@ -196,6 +209,7 @@ class _MapPageState extends State<MapPage> {
       handler(event);
     });
   }
+
 
   handler(event){
     var data = new Map<String, dynamic>.from(event.snapshot.value);
@@ -523,6 +537,7 @@ class _MapPageState extends State<MapPage> {
     });
     //get th users current location
     getCurrentLocation();
+
     getData();
     //Make Stopwatch -- stopped with zero elapsed time
     stopWatch = new Stopwatch();
@@ -1291,6 +1306,15 @@ class _MapPageState extends State<MapPage> {
                           child:  Text("Save"),
                           padding: const EdgeInsets.all(8.0),
                           onPressed: _showDialog
+                      ),
+                      new RaisedButton(
+                          child:  Text("Log in"),
+                          padding: const EdgeInsets.all(8.0),
+                          onPressed: () {
+                            _handleSignIn()
+                                .then((FirebaseUser user) => print(user))
+                                .catchError((e) => print(e));
+                          }
                       ),
                     ],
                   ),
