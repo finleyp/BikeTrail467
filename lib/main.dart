@@ -223,7 +223,7 @@ class _MapPageState extends State<MapPage> {
     distance = data["distance"];
     Polyline line = buildFromdb(jointType, color, width, id, points);
     generateTrails(fileName, name, line.points,
-        line, "this is a test", time, avgSpeed.toDouble(), distance.toDouble(), true);
+        line, "this is a test", time, avgSpeed.toDouble(), distance.toDouble(), false);
   }
 
   Polyline buildFromdb(jointType, color, width, id, points){
@@ -641,11 +641,12 @@ class _MapPageState extends State<MapPage> {
 
   //Builds a List of trail objects for the saved trails list
   void generateTrails(String id, String name, List<Location> points,
-      Polyline polyline, String description, String time, double avgSpeed, double distance, bool isDB) {
+      Polyline polyline, String description, String time, double avgSpeed, double distance, bool fromSaved) {
 
     Trail newTrail;
 
-    bool exists = false;
+    bool existsLocal = false;
+    bool existsSaved = false;
 
     //Set style for the static maps
     if (settings.isDarkTheme) {
@@ -665,23 +666,17 @@ class _MapPageState extends State<MapPage> {
 
       trails.forEach((element) {
         if (element.id == id){
-          exists = true;
+          existsSaved = true;
         }
       });
-      int count = 0;
       localTrails.forEach((element) {
         if (element.id == id) {
-          exists = true;
-        }else{
-          count ++;
+          existsLocal = true;
         }
       });
-      print(localTrails.length);
-      if(count == localTrails.length)
-        exists = false;
 
       //if the trail doesn't exist add the trail
-      if (!exists) {
+      if ((fromSaved && !existsSaved) || !fromSaved) {
 
         Location startPoint = points.first;
         Location endPoint = points.last;
@@ -708,9 +703,11 @@ class _MapPageState extends State<MapPage> {
           newTrail = new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed);
         }
 
-        if (isDB) {
+        if (!fromSaved) {
+          //put into db list
           localTrails.add(newTrail);
         } else {
+          //put into saved trails list
           trails.add(newTrail);
         }
       }
@@ -719,17 +716,17 @@ class _MapPageState extends State<MapPage> {
 
       trails.forEach((element) {
         if (element.id == id){
-          exists = true;
+          existsSaved = true;
         }
       });
       localTrails.forEach((element) {
         if (element.id == id) {
-          exists = true;
+          existsLocal = true;
         }
       });
 
       //if the trail doesn't exist add the trail
-      if (!exists) {
+      if ((fromSaved && !existsSaved) || !fromSaved) {
 
         Location startPoint = points.first;
         Location endPoint = points.last;
@@ -755,15 +752,21 @@ class _MapPageState extends State<MapPage> {
           newTrail = new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed);
         }
 
-        if (isDB) {
+        if (!fromSaved) {
+          //put into db list
           localTrails.add(newTrail);
         } else {
+          //put into saved trails list
           trails.add(newTrail);
         }
       }
     }
 
     sortTrails();
+    sortLocalTrails();
+
+    print("Trails: " + trails.length.toString());
+    print("Local Trails: " + localTrails.length.toString());
 
   }
 
@@ -889,7 +892,7 @@ class _MapPageState extends State<MapPage> {
 
             loadMarkers.add(marker);
 
-            generateTrails(id, name, points, line, "Temp Description", time, avgSpeed, distance, false);
+            generateTrails(id, name, points, line, "Temp Description", time, avgSpeed, distance, true);
 
 
           }
@@ -1053,6 +1056,12 @@ class _MapPageState extends State<MapPage> {
 
   void sortTrails() {
     trails.sort((a, b) {
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+  }
+
+  void sortLocalTrails() {
+    localTrails.sort((a, b) {
       return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
   }
