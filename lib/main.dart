@@ -16,6 +16,9 @@ import 'SettingsMenu.dart';
 import 'SavedTrails.dart';
 import 'Trail.dart';
 import 'LocalTrails.dart';
+import 'Dashboard.dart';
+import 'placeholder_widget.dart';
+
 
 import 'package:firebase_database/firebase_database.dart';
 import 'Settings.dart';
@@ -36,6 +39,12 @@ List<Polyline> loadLines = new List();
 List<Polyline> dbLines = new List();
 List<Marker> loadMarkers = new List();
 
+List<Widget> _children = [
+      PlaceholderWidget(Colors.black),
+      PlaceholderWidget(Colors.black),
+      PlaceholderWidget(Colors.black),
+      PlaceholderWidget(Colors.black)
+    ];
 
 List<Trail> trails = new List();
 List<Trail> localTrails = new List();
@@ -88,6 +97,7 @@ var aveCount = 1;
 var aveSpeed = 0.0;
 var uuid = new Uuid();
 var tempSpeed = 0.0;
+var _currentIndex = 0;
 
 ThemeData theme;
 bool showDebug = false;
@@ -439,7 +449,7 @@ class _MapPageState extends State<MapPage> {
 
   //String
   double convertSpeed(var speed){
-    
+
     if(isKph) {
       //Convert from Mps to Kph -- 1 mps = 3.6 kph
       double speedKph = speed * 3.6;
@@ -481,7 +491,7 @@ class _MapPageState extends State<MapPage> {
 
 
   void calculateDistance(Location loc1, Location loc2) async {
-    
+
     /// Source for calculation, needed because all the plugins don't work
     ///
     /// https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
@@ -496,7 +506,7 @@ class _MapPageState extends State<MapPage> {
 
     var distanceInKm = 12742 * math.asin(math.sqrt(a));
 
-    
+
     setState(() {
       distanceTraveledVal += distanceInKm;
     });
@@ -520,6 +530,15 @@ class _MapPageState extends State<MapPage> {
       });
       //Get saved trails
       buildFromJson();
+
+      _children = [
+        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance) => saveCallback(trailName, lines, time, avgSpeed, distance)),
+        null,
+        LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)),
+        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+      ];
+
+
     });
     //get th users current location
     getCurrentLocation();
@@ -527,6 +546,14 @@ class _MapPageState extends State<MapPage> {
     //Make Stopwatch -- stopped with zero elapsed time
     stopWatch = new Stopwatch();
 
+      //_children = new List();
+//      _children.add(LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)));
+//      _children.add(SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)));
+//    _children = [
+//      PlaceholderWidget(Colors.white),
+//      PlaceholderWidget(Colors.deepOrange),
+//      PlaceholderWidget(Colors.green)
+//    ];
 
 
   }
@@ -561,7 +588,8 @@ class _MapPageState extends State<MapPage> {
     String id = uuid.v1();
     String fileName = "trail-" + trailName + "-" + id;
 
-    if(count > 1) {
+
+    if(lines[0].points.length > 1) {
       Map<String, dynamic> tInfo = lines[0].toMap();
       tInfo["time"] = time;
       tInfo["avgSpeed"] = avgSpeed;
@@ -569,6 +597,7 @@ class _MapPageState extends State<MapPage> {
       //lines.forEach((line) => print(line.toMap()));
 
       //Function call to add new trail onto the database
+
 
       createJson(tInfo, dir, fileName);
       tInfo["name"] = trailName;
@@ -958,6 +987,15 @@ class _MapPageState extends State<MapPage> {
     loadMarkers.clear();
     buildFromJson();
     toggleSettings(settings);
+
+    //TODO figure out a better way to accomplish the settings callback rendering for the children
+    _children = [
+      Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance) => saveCallback(trailName, lines, time, avgSpeed, distance)),
+      null,
+      LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)),
+      SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+    ];
+
   }
 
   void savedTrailsOption(String choice, Trail trail) {
@@ -969,6 +1007,10 @@ class _MapPageState extends State<MapPage> {
       deleteFile(trail.id);
     }
 
+  }
+
+  void saveCallback(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance) {
+    saveTrail(trailName, lines, time, avgSpeed, distance);
   }
 
   void toggleSettings(Settings set) {
@@ -1042,269 +1084,60 @@ class _MapPageState extends State<MapPage> {
           )
         ],
       ),
-      body: new Container(
-       // decoration: new BoxDecoration(color: Colors.black87),
-        child: new Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            new Container(
-              child: new Column(
-                mainAxisAlignment: MainAxisAlignment.center ,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  new Container(
-                    child: new Text(
-                        speedVal.toStringAsFixed(1),
-                        textAlign: TextAlign.center,
-                        style: new TextStyle(fontSize: 60.0, fontWeight: FontWeight.bold)
-                    ),
-                  ),
-                  new Container(
-                    child: new Text(
-                      isKph ? 'Current Speed(kph)' : 'Current Speed(mph)',
-                      textAlign: TextAlign.center,
-                      style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)
-                    ),
-                  ),
-                ],
-              ),
+      body:_children[_currentIndex],
+        bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: _currentIndex,
+          fixedColor: Colors.black,
+          items: <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.home),
+                title: new Text("")
             ),
-            new Row(// upper middle
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                new Container(
-                  child: new Column(
-                    mainAxisAlignment: MainAxisAlignment.center ,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      new Container(
-//                        width: 150.0,
-//                        height: 40.0,
-                        //color: Colors.blue,
-                        child: new Text(
-                            timeVal,
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 30.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                        child: new Text(
-                          'Time',
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                new Container(
-                  child: new Column(
-                    mainAxisAlignment: MainAxisAlignment.center ,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      new Container(
-//                        width: 150.0,
-//                        height: 40.0,
-                        child: new Text(
-                            convertDist(distanceTraveledVal).toStringAsFixed(3),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 30.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                        child: new Text(
-                          isMeters ? 'Distance Traveled(km)' : 'Distance Traveled(mi)',
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            BottomNavigationBarItem(
+              icon: new Icon(Icons.map),
+              title: new Text(""),
             ),
-            new Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                new Container(
-                  child: new Column(
-                    mainAxisAlignment: MainAxisAlignment.center ,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      new Container(
-//                        width: 150.0,
-//                        height: 40.0,
-                        child: new Text(
-                            aveSpeedVal.toStringAsFixed(1),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                        child: new Text(
-                          isKph ? 'Average Speed(kph)' : 'Average Speed(mph)',
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                new Container(
-                  child: new Column(
-                    mainAxisAlignment: MainAxisAlignment.center ,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      new Container(
-//                        width: 150.0,
-//                        height: 40.0,
-                        child: new Text(
-                            "                           "/*distanceLeftVal.toStringAsFixed(1)*/,
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-//                      new Container(
-//                        child: new Text(
-//                          'Remaining Distance(mi)',
-//                          textAlign: TextAlign.center,
-//                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-//                        ),
-//                      ),
-                    ],
-                  ),
-                ),
-              ],
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.playlist_add_check),
+                title: new Text("")
             ),
-            //Debug optional Widgets
-            new Container(
-              //height: 40.0,
-              child: showDebug ? new Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: <Widget>[
-                  new Column(
-                    children: <Widget>[
-                      new Container(
-                        // width: 100.0,
-                        //height: 20.0,
-                        child: new Text(
-                            countVal.toString(),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                          child: new Text('Count')
-                      )
-                    ],
-                  ),
-                  new Column(
-                    children: <Widget>[
-                      new Container(
-                        //width: 100.0,
-                        // height: 20.0,
-                        child: new Text(
-                            latVal.toString(),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                          child: new Text('Latitude')
-                      )
-                    ],
-                  ),
-                  new Column(
-                    children: <Widget>[
-                      new Container(
-                        //width: 100.0,
-                        //height: 20.0,
-                        child: new Text(
-                            longVal.toString(),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                          child: new Text('Longitude')
-                      )
-                    ],
-                  ),
-                  new Column(
-                    children: <Widget>[
-                      new Container(
-                        //width: 100.0,
-                        //height: 20.0,
-                        child: new Text(
-                            altVal.round().toString(),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                          child: new Text(isMeters ? 'Altitude(m)' : 'Altitude(ft)')
-                      )
-                    ],
-                  ),
-                ],
-              ) : null,
-            ),
-            new Container(
-        child: new Column(
-        children: <Widget>[
-          new Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              new RaisedButton(
-                  child: Text('Map'),
-                  elevation: 2.0,
-                  onPressed: () => showMap(null, null,12.0)
-              ),
-              new RaisedButton(
-                  child: Text("Trails"),
-                  onPressed: () {
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.playlist_add_check),
+                title: new Text("")
+            )
 
-                    Navigator.push(context, MaterialPageRoute(builder:
-                      (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail) => savedTrailsOption(str, trail))));
-
-                  }
-              ),
-              new RaisedButton(
-                  child: Text("Local Trails"),
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder:
-                        (context) => LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail) => savedTrailsOption(str, trail))));
-
-                  }
-              )
-            ],
-          ),
-                  new Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                      new RaisedButton(
-                          child: isRecording ? Text("Stop Recording") : Text("Start Recording"),
-                          elevation: 2.0,
-                          color: isRecording ? Colors.red : Colors.green,
-                          onPressed: toggleRecording),
-                      new RaisedButton(
-                          child:  Text("Save"),
-                          padding: const EdgeInsets.all(8.0),
-                          onPressed: _showDialog
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            //new RaisedButton(
-            // child: new Text("LOAD TRAIL"),
-            //  onPressed: () => buildFromJson(),)
           ],
+
+          onTap: _onItemTapped,
         ),
-      ),
     ),
     );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+
+      /*
+      if(index == 0){
+
+      }
+      if(index == 1){
+        showMap(null, null,12.0);
+      }
+      if(index == 2){
+        Navigator.push(context, MaterialPageRoute(builder:
+            (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
+      }
+      */
+      if (index == 1) {
+        showMap(null, null, 12.0);
+      }else {
+        _currentIndex = index;
+      }
+
+
+    });
   }
 
   //Have user enter trail information
