@@ -115,13 +115,7 @@ class LocalTrailsState extends State<LocalTrails> with AfterLayoutMixin<LocalTra
   @override
   Widget build(BuildContext context)  {
     return Container(
-    child:MaterialApp(
-      theme: widget.theme,
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Local Trails'),
-        ),
-        body: ListView.builder(
+    child: ListView.builder(
           itemCount: widget.trails.length,
           controller: sController,
           itemBuilder: (context, index){
@@ -185,8 +179,6 @@ class LocalTrailsState extends State<LocalTrails> with AfterLayoutMixin<LocalTra
             );
           },
         ),
-      ),
-    ),
     );
   }
 }

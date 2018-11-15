@@ -16,6 +16,8 @@ import 'SettingsMenu.dart';
 import 'SavedTrails.dart';
 import 'Trail.dart';
 import 'LocalTrails.dart';
+import 'Dashboard.dart';
+import 'placeholder_widget.dart';
 
 
 import 'package:firebase_database/firebase_database.dart';
@@ -37,7 +39,12 @@ List<Polyline> loadLines = new List();
 List<Polyline> dbLines = new List();
 List<Marker> loadMarkers = new List();
 
-List<Widget> _children = [];
+List<Widget> _children = [
+      PlaceholderWidget(Colors.black),
+      PlaceholderWidget(Colors.black),
+      PlaceholderWidget(Colors.black),
+      PlaceholderWidget(Colors.black)
+    ];
 
 List<Trail> trails = new List();
 List<Trail> localTrails = new List();
@@ -193,7 +200,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   getData(){
-    var ref =  FirebaseDatabase.instance.reference().child("PattonTest");
+    var ref =  FirebaseDatabase.instance.reference().child("Trails");
     ref.onChildAdded.listen((event) {
 
       handler(event);
@@ -440,7 +447,7 @@ class _MapPageState extends State<MapPage> {
 
   //String
   double convertSpeed(var speed){
-    
+
     if(isKph) {
       //Convert from Mps to Kph -- 1 mps = 3.6 kph
       double speedKph = speed * 3.6;
@@ -482,7 +489,7 @@ class _MapPageState extends State<MapPage> {
 
 
   void calculateDistance(Location loc1, Location loc2) async {
-    
+
     /// Source for calculation, needed because all the plugins don't work
     ///
     /// https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
@@ -497,7 +504,7 @@ class _MapPageState extends State<MapPage> {
 
     var distanceInKm = 12742 * math.asin(math.sqrt(a));
 
-    
+
     setState(() {
       distanceTraveledVal += distanceInKm;
     });
@@ -521,16 +528,32 @@ class _MapPageState extends State<MapPage> {
       });
       //Get saved trails
       buildFromJson();
+
+      _children = [
+        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance) => saveCallback(trailName, lines, time, avgSpeed, distance)),
+        null,
+        LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)),
+        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+      ];
+
+
     });
     //get th users current location
     getCurrentLocation();
 
+    getData();
+
     //Make Stopwatch -- stopped with zero elapsed time
     stopWatch = new Stopwatch();
 
-      _children = new List();
-      _children.add(LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)));
-      _children.add(SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)));
+      //_children = new List();
+//      _children.add(LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)));
+//      _children.add(SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)));
+//    _children = [
+//      PlaceholderWidget(Colors.white),
+//      PlaceholderWidget(Colors.deepOrange),
+//      PlaceholderWidget(Colors.green)
+//    ];
 
 
   }
@@ -565,7 +588,8 @@ class _MapPageState extends State<MapPage> {
     String id = uuid.v1();
     String fileName = "trail-" + trailName + "-" + id;
 
-    if(count > 1) {
+
+    if(lines[0].points.length > 1) {
       Map<String, dynamic> tInfo = lines[0].toMap();
       tInfo["time"] = time;
       tInfo["avgSpeed"] = avgSpeed;
@@ -573,6 +597,7 @@ class _MapPageState extends State<MapPage> {
       //lines.forEach((line) => print(line.toMap()));
 
       //Function call to add new trail onto the database
+
 
       createJson(tInfo, dir, fileName);
       tInfo["name"] = trailName;
@@ -957,6 +982,15 @@ class _MapPageState extends State<MapPage> {
     loadMarkers.clear();
     buildFromJson();
     toggleSettings(settings);
+
+    //TODO figure out a better way to accomplish the settings callback rendering for the children
+    _children = [
+      Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance) => saveCallback(trailName, lines, time, avgSpeed, distance)),
+      null,
+      LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)),
+      SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+    ];
+
   }
 
   void savedTrailsOption(String choice, Trail trail) {
@@ -968,6 +1002,10 @@ class _MapPageState extends State<MapPage> {
       deleteFile(trail.id);
     }
 
+  }
+
+  void saveCallback(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance) {
+    saveTrail(trailName, lines, time, avgSpeed, distance);
   }
 
   void toggleSettings(Settings set) {
@@ -1043,7 +1081,8 @@ class _MapPageState extends State<MapPage> {
       ),
       body:_children[_currentIndex],
         bottomNavigationBar: BottomNavigationBar(
-          currentIndex: 0,
+          type: BottomNavigationBarType.fixed,
+          currentIndex: _currentIndex,
           fixedColor: Colors.black,
           items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
@@ -1051,8 +1090,12 @@ class _MapPageState extends State<MapPage> {
                 title: new Text("")
             ),
             BottomNavigationBarItem(
-              icon: new Icon(Icons.navigation),
+              icon: new Icon(Icons.map),
               title: new Text(""),
+            ),
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.playlist_add_check),
+                title: new Text("")
             ),
             BottomNavigationBarItem(
                 icon: new Icon(Icons.playlist_add_check),
@@ -1081,8 +1124,11 @@ class _MapPageState extends State<MapPage> {
             (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
       }
       */
-
-          _currentIndex = index;
+      if (index == 1) {
+        showMap(null, null, 12.0);
+      }else {
+        _currentIndex = index;
+      }
 
 
     });

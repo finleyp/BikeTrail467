@@ -113,13 +113,8 @@ class SavedTrailsState extends State<SavedTrails> with AfterLayoutMixin<SavedTra
 
   @override
   Widget build(BuildContext context)  {
-    return MaterialApp(
-      theme: widget.theme,
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Saved Trails'),
-        ),
-        body: ListView.builder(
+    return Container(
+        child: ListView.builder(
           itemCount: widget.trails.length,
           controller: sController,
           itemBuilder: (context, index){
@@ -183,8 +178,7 @@ class SavedTrailsState extends State<SavedTrails> with AfterLayoutMixin<SavedTra
             );
           },
         ),
-      ),
-    );
+      );
   }
 }
 
