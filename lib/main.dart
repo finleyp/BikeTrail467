@@ -188,7 +188,7 @@ class _MapPageState extends State<MapPage> {
 
 
   sendData(dynamic temp, String uName){
-    DatabaseReference database = FirebaseDatabase.instance.reference().child("PattonTest").child(uName);
+    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName);
     print("Attempting to send to database...");
     database.set(temp);
   }
@@ -208,29 +208,31 @@ class _MapPageState extends State<MapPage> {
   }
 
   handler(event){
-    var test = new Map<String, dynamic>.from(event.snapshot.value);
-    var jointType, color, width, id, points,name, fileName, avgSpeed,time,distance;
-    jointType = test["jointType"];
-    color = test["color"];
-    width = test["width"];
-    id = test["id"];
-    points = test["points"];
-    name = test["name"];
-    fileName = test["fileName"];
-    avgSpeed = test["avgSpeed"];
-    time = test["time"];
-    distance = test["distance"];
+    var data = new Map<String, dynamic>.from(event.snapshot.value);
+    var jointType, color, width, id, points, name, fileName, avgSpeed,time,distance;
+
+    jointType = data["jointType"];
+    color = data["color"];
+    width = data["width"];
+    id = data["id"];
+    points = data["points"];
+    name = data["name"];
+    fileName = data["fileName"];
+    avgSpeed = data["avgSpeed"];
+    time = data["time"];
+    distance = data["distance"];
     Polyline line = buildFromdb(jointType, color, width, id, points);
     generateTrails(fileName, name, line.points,
         line, "this is a test", time, avgSpeed.toDouble(), distance, true);
-    //print(list[list.length-1]);
   }
 
   Polyline buildFromdb(jointType, color, width, id, points){
     var attempt = new List.from(points);
     List<Location> pointslist = [];
     for(var pointMap in attempt){
-      Location temp = new Location.fromMap(pointMap);
+      //Location temp = new Location.fromMap(pointMap);
+      Location temp = new Location.full(pointMap["latitude"], pointMap["longitude"], pointMap["time"],
+          pointMap["altitude"].toDouble(), pointMap["speed"].toDouble(), pointMap["heading"], 0.0, 0.0);
       pointslist.add(temp);
     }
     var a = color["a"];
@@ -540,9 +542,7 @@ class _MapPageState extends State<MapPage> {
     });
     //get th users current location
     getCurrentLocation();
-
     getData();
-
     //Make Stopwatch -- stopped with zero elapsed time
     stopWatch = new Stopwatch();
 
@@ -668,11 +668,16 @@ class _MapPageState extends State<MapPage> {
           exists = true;
         }
       });
+      int count = 0;
       localTrails.forEach((element) {
         if (element.id == id) {
           exists = true;
+        }else{
+          count ++;
         }
       });
+      if(count == localTrails.length)
+        exists = false;
 
       //if the trail doesn't exist add the trail
       if (!exists) {
@@ -1101,6 +1106,7 @@ class _MapPageState extends State<MapPage> {
                 icon: new Icon(Icons.playlist_add_check),
                 title: new Text("")
             )
+
           ],
 
           onTap: _onItemTapped,
