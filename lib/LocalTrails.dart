@@ -13,6 +13,7 @@ bool isDark;
 
 class LocalTrails extends StatefulWidget {
   final List<Trail> trails;
+  final List<Trail> savedTrails;
   final StringCallback callback;
   final ThemeData theme;
   final bool isMeters;
@@ -23,6 +24,7 @@ class LocalTrails extends StatefulWidget {
   LocalTrails({
     Key key,
     @required this.trails,
+    @required this.savedTrails,
     @required this.theme,
     @required this.isKph,
     @required this.isMeters,
@@ -81,16 +83,86 @@ class LocalTrailsState extends State<LocalTrails> with AfterLayoutMixin<LocalTra
   }
 
 
-  void deleteTrail(Trail trail) {
+  @override
+  Widget build(BuildContext context)  {
+    return Container(
+    child: ListView.builder(
+          itemCount: widget.trails.length,
+          controller: sController,
+          itemBuilder: (context, index){
+            return new  ListTileItem(
+                trail: widget.trails[index],
+                savedTrails: widget.savedTrails,
+                theme: widget.theme,
+                viewTrail: widget.viewTrail,
+                callback: widget.callback
+            );
+          },
+        ),
+    );
+  }
+}
 
-    widget.callback("1" , trail);
+class ListTileItem extends StatefulWidget {
+  final Trail trail;
+  final List<Trail> savedTrails;
+  final ThemeData theme;
+  final String viewTrail;
+  final StringCallback callback;
+
+  ListTileItem({
+    Key key,
+    @required this.trail,
+    @required this.savedTrails,
+    @required this.theme,
+    @required this.viewTrail,
+    @required this.callback}) : super(key: key);
+
+
+  @override
+  State<StatefulWidget> createState() {
+    return ListTimeItemState();
+  }
+
+}
+
+class ListTimeItemState extends State<ListTileItem> {
+
+  bool viewThisTrail = false;
+  Icon favoriteIcon;
+  Icon favorite = Icon(Icons.favorite, color: Colors.red);
+  Icon notFavorite = Icon(Icons.favorite_border);
+
+  bool checkForMatch(String id) {
+    for (var savedTrail in widget.savedTrails) {
+      if (id == savedTrail.id) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+
+  void saveOrDeleteTrail(Trail trail) {
+
+    if(!checkForMatch(trail.id)) {
+      widget.callback("1", trail);
+      setState(() {
+        favoriteIcon = favorite;
+      });
+    } else {
+      widget.callback("2", trail);
+      Scaffold.of(context).showSnackBar(SnackBar(content: Text(trail.name + " dismissed")));
+      setState(() {
+        favoriteIcon = notFavorite;
+      });
+    }
   }
 
   void showOnMap(Trail trail) {
 
     widget.callback("0", trail);
   }
-
 
   List<charts.Series<Point, int>> createData(List<Location> points) {
 
@@ -113,74 +185,58 @@ class LocalTrailsState extends State<LocalTrails> with AfterLayoutMixin<LocalTra
   }
 
   @override
-  Widget build(BuildContext context)  {
-    return Container(
-    child: ListView.builder(
-          itemCount: widget.trails.length,
-          controller: sController,
-          itemBuilder: (context, index){
-            return Dismissible(
-              key: Key(widget.trails[index].id),
-              onDismissed: (direction) {
+  void initState() {
+    super.initState();
 
-                Trail temp = widget.trails[index];
+    if(checkForMatch(widget.trail.id)) {
+      favoriteIcon = favorite;
+    } else {
+      favoriteIcon = notFavorite;
+    }
+  }
 
-                // Remove the item from our data source.
-                setState(() {
-                  widget.trails.removeAt(index);
-                });
-                // Then show a snackbar
-                Scaffold.of(context)
-                    .showSnackBar(SnackBar(content: Text(temp.name + " dismissed")));
-                // Then delete trail
-                deleteTrail(temp);
-              },
-              // Show a trash can as the item is swiped away
-              background: Container(
-                  alignment: Alignment.centerLeft,
-                  padding: EdgeInsets.all(20.0),
-                  child: Icon(Icons.delete)),
-              secondaryBackground: Container(
-                  alignment: Alignment.centerRight,
-                  padding: EdgeInsets.all(20.0),
-                  child: Icon(Icons.delete)),
-              child: new Card(
-                elevation: 10.0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15.0),
-                ),
-                child: ListTileTheme(
-                  style: ListTileStyle.list,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      new ListTile(
-                        title: Text(widget.trails[index].name),
-                        subtitle: Text(widget.trails[index].id),
-                      ),
-                      new InkWell(
-                        child: new FadeInImage.assetNetwork(
-                          placeholder: widget.theme == ThemeData.light() ? "lib/assets/staticmap.png": "lib/assets/staticmapdark.png",
-                          image: widget.trails[index].uri.toString(),
-                        ),
-                        onTap: () => showOnMap(widget.trails[index]),
-                      ),
-                      new ExpansionTile(
-                        title: Text("Stats"),
-                        initiallyExpanded: viewThisTrail ? widget.viewTrail == widget.trails[index].id ? true : false: false,
-                        children: <Widget>[
-                          new SimpleLineChart(seriesList: (createData(widget.trails[index].points)), trail: widget.trails[index]),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+  @override
+  Widget build(BuildContext context) {
+    return new Card(
+      elevation: 10.0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15.0),
+      ),
+      child: ListTileTheme(
+        style: ListTileStyle.list,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            new ListTile(
+              title: Text(widget.trail.name),
+              trailing: new InkWell(
+                child: favoriteIcon,
+                onTap: () {
+                  saveOrDeleteTrail(widget.trail);
+                },
               ),
-            );
-          },
+              // subtitle: Text(widget.trails[index].id),
+            ),
+            new InkWell(
+              child: new FadeInImage.assetNetwork(
+                placeholder: widget.theme == ThemeData.light() ? "lib/assets/staticmap.png": "lib/assets/staticmapdark.png",
+                image: widget.trail.uri.toString(),
+              ),
+              onTap: () => showOnMap(widget.trail),
+            ),
+            new ExpansionTile(
+              title: Text("Stats"),
+              initiallyExpanded: viewThisTrail ? widget.viewTrail == widget.trail.id ? true : false: false,
+              children: <Widget>[
+                new SimpleLineChart(seriesList: (createData(widget.trail.points)), trail: widget.trail),
+              ],
+            ),
+          ],
         ),
+      ),
     );
   }
+
 }
 
 double convertSpeed(var speed){

@@ -542,7 +542,7 @@ class _MapPageState extends State<MapPage> {
       _children = [
         Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
         null,
-        LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)),
+        LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
         SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
       ];
 
@@ -591,10 +591,14 @@ class _MapPageState extends State<MapPage> {
 
   //saveTrail Method
   //woo time to save
-  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic){
+  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic, {String file}){
 
-    String id = uuid.v1();
-    String fileName = "trail-" + trailName + "-" + id;
+    if (fileName == null) {
+      String id = uuid.v1();
+      String fileName = "trail-" + trailName + "-" + id;
+    } else {
+      fileName = file;
+    }
 
 
     if(lines[0].points.length > 1) {
@@ -915,6 +919,11 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
+  void addToSavedList(Trail trail) {
+    List<Polyline> lines = [trail.polyline];
+    saveTrail(trail.name, lines, trail.time, trail.avgSpeed, trail.length, false, file: trail.id);
+  }
+
   void deleteFile(String file){
 
     getApplicationDocumentsDirectory().then((Directory directory) {
@@ -930,7 +939,6 @@ class _MapPageState extends State<MapPage> {
         }
       });
     });
-
   }
 
   //gets the speed preference
@@ -1008,7 +1016,7 @@ class _MapPageState extends State<MapPage> {
     _children = [
       Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
       null,
-      LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)),
+      LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
       SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
     ];
 
@@ -1023,6 +1031,27 @@ class _MapPageState extends State<MapPage> {
       deleteFile(trail.id);
     }
 
+  }
+
+  void localTrailCallback(String choice, Trail trail) {
+    if (choice == '0'){
+      int middle = (trail.points.length / 2).round();
+      showMap(trail.points, trail.points[middle], 14.0);
+    } else if (choice == '1') {
+      addToSavedList(trail);
+    } else if (choice == '2') {
+      deleteFile(trail.id);
+
+      //remove from the list
+      Trail temp;
+      for (var t in trails) {
+        if (trail.id == t.id) {
+          temp = t;
+          break;
+        }
+      }
+      trails.remove(temp);
+    }
   }
 
   void saveCallback(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic) {
