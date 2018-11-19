@@ -301,8 +301,14 @@ class _MapPageState extends State<MapPage> {
 
       //Navigate to saved trails list at certain trail
       //TODO: decide to go to savedTrails or localTrails
-      Navigator.push(context, MaterialPageRoute(builder:
-          (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: marker.id, callback: (str, trail) => savedTrailsOption(str, trail))));
+
+      setState(() {
+        _onItemTapped(3, trailID: marker.id);
+      });
+
+
+//      Navigator.push(context, MaterialPageRoute(builder:
+//          (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: marker.id, callback: (str, trail) => savedTrailsOption(str, trail))));
     });
 
     //Listener for polyline taps
@@ -1170,28 +1176,44 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index, {String trailID}) {
+
+    if(trailID == null) {
+
+      _children = [
+        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+        null,
+        LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+      ];
 
       setState(() {
-
-        /*
-      if(index == 0){
-
-      }
-      if(index == 1){
-        showMap(null, null,12.0);
-      }
-      if(index == 2){
-        Navigator.push(context, MaterialPageRoute(builder:
-            (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
-      }
-      */
         if (index == 1) {
           showMap(null, null, 12.0);
+          _currentIndex = 0;
         } else {
           _currentIndex = index;
         }
       });
+    } else {
+
+      _children = [
+        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+        null,
+        LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: trailID, callback: (str, trail)=> savedTrailsOption(str, trail))
+      ];
+
+      setState(() {
+        if (index == 1) {
+          showMap(null, null, 12.0);
+          _currentIndex = 0;
+        } else {
+          _currentIndex = index;
+        }
+      });
+    }
+
 
   }
 

@@ -209,7 +209,7 @@ class ListTimeItemState extends State<ListTileItem> {
           children: <Widget>[
             new ListTile(
               title: Text(widget.trail.name),
-              trailing: new InkWell(
+              trailing: new InkResponse(
                 child: favoriteIcon,
                 onTap: () {
                   saveOrDeleteTrail(widget.trail);
