@@ -62,15 +62,15 @@ Settings settings;
 final ThemeData darkTheme = new ThemeData(
   brightness: Brightness.dark,
   primaryTextTheme: new TextTheme(caption: new TextStyle(color: Colors.white)),
-  hintColor: Colors.white,
-  highlightColor: Colors.white,
-  textSelectionColor: Colors.white,
-  textSelectionHandleColor: Colors.white,
   buttonColor: Colors.grey,
   splashColor: Colors.teal,
+  hintColor: Colors.grey,
+  disabledColor: Colors.grey[600]
 );
 final ThemeData lightTheme = new ThemeData(
-  brightness: Brightness.light
+  brightness: Brightness.light,
+  hintColor: Colors.grey,
+  disabledColor: Colors.grey[600]
 );
 
 
@@ -140,6 +140,9 @@ class _MapPageState extends State<MapPage> {
 
   //MapView mapView = new MapView();
 
+  //Colors used for icons and indicating a non usable icon
+  Color iconColor;
+  Color disabledIconColor;
 
   //Dashboard Values
   double speedVal = 0.0;
@@ -343,6 +346,8 @@ class _MapPageState extends State<MapPage> {
       timer = new Timer.periodic(new Duration(milliseconds: 30), setStopWatchGui);
 
       getPositionStream();
+
+
     } else {
 
       //Stop the stopwatch
@@ -531,8 +536,11 @@ class _MapPageState extends State<MapPage> {
       //Get saved trails
       buildFromJson();
 
+      iconColor = theme.hintColor;
+      disabledIconColor = theme.disabledColor;
+
       _children = [
-        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance) => saveCallback(trailName, lines, time, avgSpeed, distance)),
+        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
         null,
         LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)),
         SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
@@ -583,7 +591,7 @@ class _MapPageState extends State<MapPage> {
 
   //saveTrail Method
   //woo time to save
-  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance){
+  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic){
 
     String id = uuid.v1();
     String fileName = "trail-" + trailName + "-" + id;
@@ -602,7 +610,11 @@ class _MapPageState extends State<MapPage> {
       createJson(tInfo, dir, fileName);
       tInfo["name"] = trailName;
       tInfo["fileName"] = fileName;
-      sendData(tInfo , fileName);
+
+      //Send to database only if make public was checked.
+      if (isPublic) {
+        sendData(tInfo, fileName);
+      }
 
       this.setState(() =>
       trailContent = json.decode(trailsJsonFile.readAsStringSync()));
@@ -994,7 +1006,7 @@ class _MapPageState extends State<MapPage> {
 
     //TODO figure out a better way to accomplish the settings callback rendering for the children
     _children = [
-      Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance) => saveCallback(trailName, lines, time, avgSpeed, distance)),
+      Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
       null,
       LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)),
       SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
@@ -1013,8 +1025,8 @@ class _MapPageState extends State<MapPage> {
 
   }
 
-  void saveCallback(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance) {
-    saveTrail(trailName, lines, time, avgSpeed, distance);
+  void saveCallback(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic) {
+    saveTrail(trailName, lines, time, avgSpeed, distance, isPublic);
   }
 
   void toggleSettings(Settings set) {
@@ -1101,20 +1113,24 @@ class _MapPageState extends State<MapPage> {
           fixedColor: Colors.black,
           items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-                icon: new Icon(Icons.home),
-                title: new Text("")
+                icon: new Icon(Icons.home, /*color: iconColor*/),
+                title: new Text(""),
+                activeIcon: new Icon(Icons.home, /*color: Colors.black*/)
             ),
             BottomNavigationBarItem(
-              icon: new Icon(Icons.map),
+              icon: new Icon(Icons.map, /*color: iconColor*/),
               title: new Text(""),
+                activeIcon: new Icon(Icons.map, /*color: Colors.black*/)
             ),
             BottomNavigationBarItem(
-                icon: new Icon(Icons.playlist_add_check),
-                title: new Text("")
+                icon: new Icon(Icons.playlist_add_check, /*color: disabledIconColor*/),
+                title: new Text(""),
+                activeIcon: new Icon(Icons.playlist_add_check, /*color: Colors.black*/)
             ),
             BottomNavigationBarItem(
-                icon: new Icon(Icons.playlist_add_check),
-                title: new Text("")
+                icon: new Icon(Icons.playlist_add_check, /*color: disabledIconColor*/),
+                title: new Text(""),
+                activeIcon: new Icon(Icons.playlist_add_check, /*color: Colors.black*/)
             )
 
           ],
@@ -1126,9 +1142,10 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _onItemTapped(int index) {
-    setState(() {
 
-      /*
+      setState(() {
+
+        /*
       if(index == 0){
 
       }
@@ -1140,14 +1157,13 @@ class _MapPageState extends State<MapPage> {
             (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, callback: (str, trail) => savedTrailsOption(str, trail))));
       }
       */
-      if (index == 1) {
-        showMap(null, null, 12.0);
-      }else {
-        _currentIndex = index;
-      }
+        if (index == 1) {
+          showMap(null, null, 12.0);
+        } else {
+          _currentIndex = index;
+        }
+      });
 
-
-    });
   }
 
   //Have user enter trail information
@@ -1171,6 +1187,11 @@ class _MapPageState extends State<MapPage> {
             ],
           ),
           actions: <Widget>[
+            new Text("Make Public"),
+            new Checkbox(
+                value: false,
+                onChanged: null
+            ),
             new FlatButton(
                 child: const Text('Cancel'),
                 onPressed: () {
@@ -1181,7 +1202,7 @@ class _MapPageState extends State<MapPage> {
                 onPressed: () {
                   Navigator.pop(context);
                   print(trailNameController.text);
-                  saveTrail(trailNameController.text, polyLines, timeVal, aveSpeed, distanceTraveledVal);
+                 // saveTrail(trailNameController.text, polyLines, timeVal, aveSpeed, distanceTraveledVal);
                   trailNameController.text = "";
                 })
           ],

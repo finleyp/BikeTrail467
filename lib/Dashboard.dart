@@ -16,8 +16,9 @@ import 'SettingsMenu.dart';
 import 'SavedTrails.dart';
 import 'Trail.dart';
 import 'LocalTrails.dart';
+import 'SaveDialog.dart';
 
-typedef void SaveCallback(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance);
+typedef void SaveCallback(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic);
 
 
 var geolocator = Geolocator();
@@ -70,6 +71,8 @@ var aveCount = 1;
 var aveSpeed = 0.0;
 var uuid = new Uuid();
 var _currentIndex = 0;
+
+bool publicCheck = false;
 
 ThemeData theme;
 
@@ -223,10 +226,11 @@ class DashboardState extends State<Dashboard> {
 
     var distanceInKm = 12742 * math.asin(math.sqrt(a));
 
-
-    setState(() {
-      distanceTraveledVal += distanceInKm;
-    });
+    if(mounted == true) {
+      setState(() {
+        distanceTraveledVal += distanceInKm;
+      });
+    }
 
     dist += distanceInKm;
   }
@@ -240,7 +244,9 @@ class DashboardState extends State<Dashboard> {
 //    isMetricDist = settings.getIsMetricDist;
 
     //toggle the isRecording boolean
-    setState(() => isRecording = !isRecording);
+    if(mounted == true) {
+      setState(() => isRecording = !isRecording);
+    }
 
     //starts stream if isRecording is true
     if (isRecording){
@@ -261,16 +267,18 @@ class DashboardState extends State<Dashboard> {
       //cancels the stream if isRecording is false
       positionStream.cancel();
 
-      setState(() {
-        speedVal = 0.0;
-        //aveSpeedVal = 0.0;
-      });
+      if(mounted == true) {
+        setState(() {
+          speedVal = 0.0;
+          //aveSpeedVal = 0.0;
+        });
+      }
 
     }
   }
 
   void setStopWatchGui(Timer timer){
-    if (stopWatch.isRunning) {
+    if (stopWatch.isRunning && mounted) {
       setState(() {
         timeVal = stopWatch.elapsed.toString().substring(0, 10);
       });
@@ -334,14 +342,16 @@ class DashboardState extends State<Dashboard> {
             aveCount++;
           }
 
-          setState(() {
-            speedVal = convertSpeed(speed);
-            aveSpeedVal = convertSpeed(aveSpeed);
-            countVal = count;
-            latVal = loc.latitude;
-            longVal = loc.longitude;
-            altVal = altitude;
-          });
+          if(mounted == true) {
+            setState(() {
+              speedVal = convertSpeed(speed);
+              aveSpeedVal = convertSpeed(aveSpeed);
+              countVal = count;
+              latVal = loc.latitude;
+              longVal = loc.longitude;
+              altVal = altitude;
+            });
+          }
 
 
 
@@ -363,49 +373,23 @@ class DashboardState extends State<Dashboard> {
 
   }
 
-  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance) {
+  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic) {
 
-    widget.callback(trailName, lines, time, avgSpeed, distance);
+    widget.callback(trailName, lines, time, avgSpeed, distance, isPublic);
   }
 
-
+  //Redundant
+  void saveTrailDialogCallback(String trailName, bool isPublic){
+    saveTrail(trailName, polyLines, timeVal, aveSpeed, distanceTraveledVal, isPublic);
+  }
 
   _showDialog() async {
     await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return new AlertDialog(
-          contentPadding: const EdgeInsets.all(16.0),
-          content: new Row(
-            children: <Widget>[
-              new Expanded(
-                child: new TextField(
-                  autofocus: true,
-                  controller: trailNameController,
-                  decoration: new InputDecoration(
-                      labelText: 'Trail Information', hintText: 'Trail Name', contentPadding: const EdgeInsets.only(top: 16.0)),
-                ),
-              )
-            ],
-          ),
-          actions: <Widget>[
-            new FlatButton(
-                child: const Text('Cancel'),
-                onPressed: () {
-                  Navigator.pop(context);
-                }),
-            new FlatButton(
-                child: const Text('Save'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  print(trailNameController.text);
-                  saveTrail(trailNameController.text, polyLines, timeVal, aveSpeed, distanceTraveledVal);
-                  trailNameController.text = "";
-                })
-          ],
-        );
-      },
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context){
+          return new SaveDialog(callback: (name, public) => saveTrailDialogCallback(name, public));
+        }
     );
   }
 
