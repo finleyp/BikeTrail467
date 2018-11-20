@@ -16,8 +16,9 @@ import 'SettingsMenu.dart';
 import 'SavedTrails.dart';
 import 'Trail.dart';
 import 'LocalTrails.dart';
+import 'SaveDialog.dart';
 
-typedef void SaveCallback(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance);
+typedef void SaveCallback(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic);
 
 
 var geolocator = Geolocator();
@@ -71,6 +72,8 @@ var aveSpeed = 0.0;
 var uuid = new Uuid();
 var _currentIndex = 0;
 
+bool publicCheck = false;
+
 ThemeData theme;
 
 
@@ -97,6 +100,7 @@ class Dashboard extends StatefulWidget {
   final bool isMeters;
   final bool isKph;
   final bool isDebug;
+  final Trail rideTrail;
 
   Dashboard({
     Key key,
@@ -104,6 +108,7 @@ class Dashboard extends StatefulWidget {
     @required this.isKph,
     @required this.isMeters,
     @required this.isDebug,
+    this.rideTrail,
     @required this.callback}) : super(key: key);
 
   @override
@@ -163,6 +168,10 @@ class DashboardState extends State<Dashboard> {
     super.initState();
 
     stopWatch = new Stopwatch();
+
+    if (widget.rideTrail != null){
+      toggleRecording(true);
+    }
   }
 
   double convertSpeed(var speed){
@@ -207,7 +216,7 @@ class DashboardState extends State<Dashboard> {
   }
 
 
-  void calculateDistance(Location loc1, Location loc2) async {
+  double calculateDistance(Location loc1, Location loc2) {
 
     /// Source for calculation, needed because all the plugins don't work
     ///
@@ -223,15 +232,61 @@ class DashboardState extends State<Dashboard> {
 
     var distanceInKm = 12742 * math.asin(math.sqrt(a));
 
+    return distanceInKm;
 
-    setState(() {
-      distanceTraveledVal += distanceInKm;
-    });
-
-    dist += distanceInKm;
   }
 
-  void toggleRecording() {
+  double calculateDistanceLeft(Location currentLoc) {
+
+    Location closestLoc;
+    double closestDist = -1.0;
+
+    //Finds the closest point on the trail to the users current location
+    for (var point in widget.rideTrail.points) {
+      double temp = calculateDistance(currentLoc, point);
+      if (temp < closestDist || closestDist == -1.0) {
+        closestDist = temp;
+        closestLoc = point;
+      }
+    }
+
+    bool pointFound = false;
+    double distanceLeft = 0.0;
+    Location loc1;
+    Location loc2;
+
+    //Find remaining distance
+    for (var point in widget.rideTrail.points) {
+      if (point == closestLoc) {
+        pointFound = true;
+      }
+      if (pointFound) {
+        //calculate distance
+        if (loc1 != null && loc2 != null) {
+
+          //move to the next section of the path
+          loc1 = loc2;
+          loc2 = point;
+
+          distanceLeft += calculateDistance(loc1, loc2);
+        } else if (loc1 == null && loc2 == null) {
+          loc1 = point;
+        } else if (loc1 != null && loc2 == null) {
+          loc2 = point;
+          //first section of path
+          distanceLeft += calculateDistance(loc1, loc2);
+        }
+      }
+    }
+
+//    print(distanceLeft);
+
+    return distanceLeft;
+
+
+  }
+
+  void toggleRecording(bool isRiding) {
 
     //Get correct units
 //    SettingsMenu settings = new SettingsMenu();
@@ -240,7 +295,9 @@ class DashboardState extends State<Dashboard> {
 //    isMetricDist = settings.getIsMetricDist;
 
     //toggle the isRecording boolean
-    setState(() => isRecording = !isRecording);
+    if(mounted == true) {
+      setState(() => isRecording = !isRecording);
+    }
 
     //starts stream if isRecording is true
     if (isRecording){
@@ -250,7 +307,7 @@ class DashboardState extends State<Dashboard> {
       //start timer for stopwatch gui updates
       timer = new Timer.periodic(new Duration(milliseconds: 30), setStopWatchGui);
 
-      getPositionStream();
+      getPositionStream(isRiding);
     } else {
 
       //Stop the stopwatch
@@ -261,26 +318,34 @@ class DashboardState extends State<Dashboard> {
       //cancels the stream if isRecording is false
       positionStream.cancel();
 
-      setState(() {
-        speedVal = 0.0;
-        //aveSpeedVal = 0.0;
-      });
+      if(mounted == true) {
+        setState(() {
+          speedVal = 0.0;
+          //aveSpeedVal = 0.0;
+        });
+      }
+
+      if(widget.rideTrail != null) {
+        stopRide(widget.rideTrail.id, polyLines, timeVal, aveSpeed, distanceTraveledVal, null);
+      }
 
     }
   }
 
   void setStopWatchGui(Timer timer){
-    if (stopWatch.isRunning) {
+    if (stopWatch.isRunning && mounted) {
       setState(() {
         timeVal = stopWatch.elapsed.toString().substring(0, 10);
       });
     }
   }
 
-  void getPositionStream() {
+  void getPositionStream(bool isRiding) {
 
     var locationOptions = LocationOptions(
         accuracy: LocationAccuracy.best, distanceFilter: 1);
+
+    double distance = 0.0;
 
     Location loc1;
     Location loc2;
@@ -314,13 +379,13 @@ class DashboardState extends State<Dashboard> {
             loc1 = loc2;
             loc2 = loc;
 
-            calculateDistance(loc1, loc2);
+            distance = calculateDistance(loc1, loc2);
           } else if (loc1 == null && loc2 == null) {
             loc1 = loc;
           } else if (loc1 != null && loc2 == null) {
             loc2 = loc;
             //first section of path
-            calculateDistance(loc1, loc2);
+            distance = calculateDistance(loc1, loc2);
           }
 
           count++;
@@ -334,14 +399,25 @@ class DashboardState extends State<Dashboard> {
             aveCount++;
           }
 
-          setState(() {
-            speedVal = convertSpeed(speed);
-            aveSpeedVal = convertSpeed(aveSpeed);
-            countVal = count;
-            latVal = loc.latitude;
-            longVal = loc.longitude;
-            altVal = altitude;
-          });
+          if(mounted == true) {
+            setState(() {
+              speedVal = convertSpeed(speed);
+              aveSpeedVal = convertSpeed(aveSpeed);
+              countVal = count;
+              latVal = loc.latitude;
+              longVal = loc.longitude;
+              altVal = altitude;
+              distanceTraveledVal = distance;
+
+              if (isRiding) {
+                distanceLeftVal = calculateDistanceLeft(loc);
+              }
+
+            });
+
+            dist += distance;
+
+          }
 
 
 
@@ -363,49 +439,27 @@ class DashboardState extends State<Dashboard> {
 
   }
 
-  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance) {
+  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic) {
 
-    widget.callback(trailName, lines, time, avgSpeed, distance);
+    widget.callback(trailName, lines, time, avgSpeed, distance, isPublic);
   }
 
+  void stopRide(String trailID, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic) {
+    widget.callback(trailID, polyLines, timeVal, aveSpeed, distanceTraveledVal, isPublic);
+  }
 
+  //Redundant
+  void saveTrailDialogCallback(String trailName, bool isPublic){
+    saveTrail(trailName, polyLines, timeVal, aveSpeed, distanceTraveledVal, isPublic);
+  }
 
   _showDialog() async {
     await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return new AlertDialog(
-          contentPadding: const EdgeInsets.all(16.0),
-          content: new Row(
-            children: <Widget>[
-              new Expanded(
-                child: new TextField(
-                  autofocus: true,
-                  controller: trailNameController,
-                  decoration: new InputDecoration(
-                      labelText: 'Trail Information', hintText: 'Trail Name', contentPadding: const EdgeInsets.only(top: 16.0)),
-                ),
-              )
-            ],
-          ),
-          actions: <Widget>[
-            new FlatButton(
-                child: const Text('Cancel'),
-                onPressed: () {
-                  Navigator.pop(context);
-                }),
-            new FlatButton(
-                child: const Text('Save'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  print(trailNameController.text);
-                  saveTrail(trailNameController.text, polyLines, timeVal, aveSpeed, distanceTraveledVal);
-                  trailNameController.text = "";
-                })
-          ],
-        );
-      },
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context){
+          return new SaveDialog(callback: (name, public) => saveTrailDialogCallback(name, public));
+        }
     );
   }
 
@@ -540,19 +594,19 @@ class DashboardState extends State<Dashboard> {
 //                        width: 150.0,
 //                        height: 40.0,
                       child: new Text(
-                          "                           " /*distanceLeftVal.toStringAsFixed(1)*/,
+                          widget.rideTrail != null ? convertDist(distanceLeftVal).toStringAsFixed(3) : "--",
                           textAlign: TextAlign.center,
                           style: new TextStyle(
                               fontSize: 16.0, fontWeight: FontWeight.bold)
                       ),
                     ),
-//                      new Container(
-//                        child: new Text(
-//                          'Remaining Distance(mi)',
-//                          textAlign: TextAlign.center,
-//                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-//                        ),
-//                      ),
+                      new Container(
+                        child: new Text(
+                          'Remaining Distance(mi)',
+                          textAlign: TextAlign.center,
+                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -689,7 +743,7 @@ class DashboardState extends State<Dashboard> {
                             "Start Recording"),
                         elevation: 2.0,
                         color: isRecording ? Colors.red : Colors.green,
-                        onPressed: toggleRecording),
+                        onPressed: () => toggleRecording(false)),
                     new RaisedButton(
                         child: Text("Save"),
                         padding: const EdgeInsets.all(8.0),

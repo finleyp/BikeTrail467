@@ -90,6 +90,11 @@ class SavedTrailsState extends State<SavedTrails> with AfterLayoutMixin<SavedTra
     widget.callback("0", trail);
   }
 
+  void rideTrail(Trail trail) {
+    print("Ride Trail " + trail.name);
+    widget.callback("2", trail);
+  }
+
 
   List<charts.Series<Point, int>> createData(List<Location> points) {
 
@@ -168,7 +173,14 @@ class SavedTrailsState extends State<SavedTrails> with AfterLayoutMixin<SavedTra
                         title: Text("Stats"),
                         initiallyExpanded: viewThisTrail ? widget.viewTrail == widget.trails[index].id ? true : false: false,
                         children: <Widget>[
+                          new Divider(),
+                          new Text("Change in Altitude"),
                           new SimpleLineChart(seriesList: (createData(widget.trails[index].points)), trail: widget.trails[index]),
+                          new Divider(),
+                          new FlatButton(
+                            onPressed: () => rideTrail(widget.trails[index]),
+                            child: Text("Ride Trail"),
+                          ),
                         ],
                       ),
                     ],
