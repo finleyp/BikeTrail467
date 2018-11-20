@@ -1313,54 +1313,7 @@ class _MapPageState extends State<MapPage> {
                 title: new Text(""),
                 activeIcon: new Icon(Icons.playlist_add_check, /*color: Colors.black*/)
             )
-
-                    Navigator.push(context, MaterialPageRoute(builder:
-                      (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail) => savedTrailsOption(str, trail))));
-
-                  }
-              ),
-              new RaisedButton(
-                  child: Text("Local Trails"),
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder:
-                        (context) => LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail) => savedTrailsOption(str, trail))));
-
-                  }
-              )
             ],
-          ),
-                  new Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                      new RaisedButton(
-                          child: isRecording ? Text("Stop Recording") : Text("Start Recording"),
-                          elevation: 2.0,
-                          color: isRecording ? Colors.red : Colors.green,
-                          onPressed: toggleRecording),
-                      new RaisedButton(
-                          child:  Text("Save"),
-                          padding: const EdgeInsets.all(8.0),
-                          onPressed: _showDialog
-                      ),
-                      new RaisedButton(
-                          child:  Text("Log in"),
-                          padding: const EdgeInsets.all(8.0),
-                          onPressed: () {
-                            _handleSignIn()
-                                .then((FirebaseUser user) => print(user))
-                                .catchError((e) => print(e));
-                          }
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            //new RaisedButton(
-            // child: new Text("LOAD TRAIL"),
-            //  onPressed: () => buildFromJson(),)
-          ],
-
           onTap: _onItemTapped,
         ),
     ),
