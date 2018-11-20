@@ -202,6 +202,8 @@ class _MapPageState extends State<MapPage> {
     );
     print("signed in " + user.displayName);
     uID = user.uid;
+    //@patton
+    //loginSync(uID);
     print("uID: " + uID);
     return user;
   }
@@ -245,6 +247,45 @@ class _MapPageState extends State<MapPage> {
     ref.onChildAdded.listen((event) {
       userHandler(event);
     });
+  }
+
+  //@patton
+  loginSync(String uName){
+    List<String> dbTrails = [];
+    var ref =  FirebaseDatabase.instance.reference().child("Trails").child(uName);
+    //first get trails from the db
+    ref.onChildAdded.listen((event) {
+      dbTrails.add(event.snapshot.value[fileName]);
+      var found = false;
+      //check if they exist locally
+      localTrails.forEach((trail){
+        if(event.snapshot.value[fileName] == trail.id){
+          found = true;
+        }
+      });
+      //if they dont then add them
+      if(!found){
+        userHandler(event);
+      }
+    });
+    //next check if the trails are on the db
+    //afraid this wont work
+    localTrails.forEach((trail){
+      var found = false;
+      dbTrails.forEach((id){
+        if(id == trail.id){
+          found = true;
+        }
+      });
+      if(!found)
+        sendDataUser(trail, uID, trail.id);
+    });
+  }
+
+  //@sam @braedin
+  //this needs to be added where they delete their trails so it removes it from db also
+  deleteDataUser(String uName, String trailID){
+    FirebaseDatabase.instance.reference().child("Trails").child(uName).child(trailID).remove();
   }
 
   handler(event){
