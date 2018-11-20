@@ -31,7 +31,8 @@ dependencies:
   uuid: ^1.0.0
 
   firebase_database: ^1.0.5
-  firebase_core: any
+  firebase_auth: 0.6.2+1
+  google_sign_in: 3.2.4
 
   shared_preferences: ^0.4.3
   charts_flutter: ^0.5.0

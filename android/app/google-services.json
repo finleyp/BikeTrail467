@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "413461348854-m2ddgb2qtcqmped6877pr92u8d868gmo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "biketrails.mapfeasibility",
+            "certificate_hash": "91e413184e761836d67494ef2b12a89448261c63"
+          }
+        },
+        {
           "client_id": "413461348854-6n6frumsashdt7g92rdfrphjh6cl3htj.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,8 +37,20 @@
           "status": 1
         },
         "appinvite_service": {
-          "status": 1,
-          "other_platform_oauth_client": []
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "413461348854-6n6frumsashdt7g92rdfrphjh6cl3htj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "413461348854-603a1d3oj3k48gp590celmgbk59tdfgh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": ".com.gvsucapstone.BikeTrail467"
+              }
+            }
+          ]
         },
         "ads_service": {
           "status": 2

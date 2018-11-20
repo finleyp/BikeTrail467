@@ -16,9 +16,10 @@ import 'SettingsMenu.dart';
 import 'SavedTrails.dart';
 import 'Trail.dart';
 import 'LocalTrails.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'Dashboard.dart';
 import 'placeholder_widget.dart';
-
 
 import 'package:firebase_database/firebase_database.dart';
 import 'Settings.dart';
@@ -36,7 +37,6 @@ var geolocator = Geolocator();
 
 List<Polyline> polyLines = new List();
 List<Polyline> loadLines = new List();
-List<Polyline> dbLines = new List();
 List<Marker> loadMarkers = new List();
 
 List<Widget> _children = [
@@ -103,6 +103,11 @@ ThemeData theme;
 bool showDebug = false;
 bool isKph = false;
 bool isMeters = false;
+
+//authenticate stuff following steps in api
+final GoogleSignIn _googleSignIn = GoogleSignIn();
+final FirebaseAuth _auth = FirebaseAuth.instance;
+String uID = "";
 
 
 Polyline newLine = new Polyline(
@@ -188,28 +193,57 @@ class _MapPageState extends State<MapPage> {
 
   double dist = 0.0;
 
+  Future<FirebaseUser> _handleSignIn() async {
+    GoogleSignInAccount googleUser = await _googleSignIn.signIn();
+    GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    FirebaseUser user = await _auth.signInWithGoogle(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    print("signed in " + user.displayName);
+    uID = user.uid;
+    print("uID: " + uID);
+    return user;
+  }
+
   bool isRiding = false;
   Trail ridingTrail;
 
 
 
-  sendData(dynamic temp, String uName){
-    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName);
+  //@sam
+  Future _handleSignOut() async {
+    await _auth.signOut();
+    await _googleSignIn.signOut();
+  }
+
+  sendData(dynamic temp, String trailID){
+    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child("Public").child(trailID);
     print("Attempting to send to database...");
     database.set(temp);
   }
 
-  sendDataAll(dynamic temp, String uName){
-    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName);
+
+  //@Sam this method is to save ther user
+  sendDataUser(dynamic temp, String uName,String trailID){
+    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName).child(trailID);
     print("Attempting to send to database...");
     database.set(temp);
   }
 
   getData(){
-    var ref =  FirebaseDatabase.instance.reference().child("Trails");
+    var ref =  FirebaseDatabase.instance.reference().child("Trails").child("Public");
     ref.onChildAdded.listen((event) {
 
       handler(event);
+    });
+  }
+
+  //@sam this is to load user data
+  getDataUser(String uName){
+    var ref =  FirebaseDatabase.instance.reference().child("Trails").child(uName);
+    ref.onChildAdded.listen((event) {
+      userHandler(event);
     });
   }
 
@@ -232,6 +266,28 @@ class _MapPageState extends State<MapPage> {
         line, "this is a test", time, avgSpeed.toDouble(), distance.toDouble(), false);
   }
 
+  //we can trim down the code in these eventually
+  userHandler(event){
+    var data = new Map<String, dynamic>.from(event.snapshot.value);
+    var jointType, color, width, id, points, name, fileName, avgSpeed,time,distance;
+
+    jointType = data["jointType"];
+    color = data["color"];
+    width = data["width"];
+    id = data["id"];
+    points = data["points"];
+    name = data["name"];
+    fileName = data["fileName"];
+    avgSpeed = data["avgSpeed"];
+    time = data["time"];
+    distance = data["distance"];
+    Polyline line = buildFromdb(jointType, color, width, id, points);
+    //this line will need to be changed so they know its coming from the users db
+    //not the public one
+    generateTrails(fileName, name, line.points,
+        line, "this is a test", time, avgSpeed.toDouble(), distance, true);
+  }
+
   Polyline buildFromdb(jointType, color, width, id, points){
     var attempt = new List.from(points);
     List<Location> pointslist = [];
@@ -251,7 +307,6 @@ class _MapPageState extends State<MapPage> {
         width: width.toDouble(),
         color: Color.fromARGB(a, r, g, b),
         jointType: FigureJointType.round);
-    dbLines.add(line);
     return line;
   }
 
@@ -581,6 +636,7 @@ class _MapPageState extends State<MapPage> {
     });
     //get th users current location
     getCurrentLocation();
+
     getData();
     //Make Stopwatch -- stopped with zero elapsed time
     stopWatch = new Stopwatch();
@@ -1258,6 +1314,51 @@ class _MapPageState extends State<MapPage> {
                 activeIcon: new Icon(Icons.playlist_add_check, /*color: Colors.black*/)
             )
 
+                    Navigator.push(context, MaterialPageRoute(builder:
+                      (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail) => savedTrailsOption(str, trail))));
+
+                  }
+              ),
+              new RaisedButton(
+                  child: Text("Local Trails"),
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder:
+                        (context) => LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail) => savedTrailsOption(str, trail))));
+
+                  }
+              )
+            ],
+          ),
+                  new Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: <Widget>[
+                      new RaisedButton(
+                          child: isRecording ? Text("Stop Recording") : Text("Start Recording"),
+                          elevation: 2.0,
+                          color: isRecording ? Colors.red : Colors.green,
+                          onPressed: toggleRecording),
+                      new RaisedButton(
+                          child:  Text("Save"),
+                          padding: const EdgeInsets.all(8.0),
+                          onPressed: _showDialog
+                      ),
+                      new RaisedButton(
+                          child:  Text("Log in"),
+                          padding: const EdgeInsets.all(8.0),
+                          onPressed: () {
+                            _handleSignIn()
+                                .then((FirebaseUser user) => print(user))
+                                .catchError((e) => print(e));
+                          }
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            //new RaisedButton(
+            // child: new Text("LOAD TRAIL"),
+            //  onPressed: () => buildFromJson(),)
           ],
 
           onTap: _onItemTapped,
