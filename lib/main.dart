@@ -18,6 +18,9 @@ import 'Trail.dart';
 import 'LocalTrails.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'Dashboard.dart';
+import 'placeholder_widget.dart';
+
 import 'package:firebase_database/firebase_database.dart';
 import 'Settings.dart';
 
@@ -36,6 +39,12 @@ List<Polyline> polyLines = new List();
 List<Polyline> loadLines = new List();
 List<Marker> loadMarkers = new List();
 
+List<Widget> _children = [
+      PlaceholderWidget(Colors.black),
+      PlaceholderWidget(Colors.black),
+      PlaceholderWidget(Colors.black),
+      PlaceholderWidget(Colors.black)
+    ];
 
 List<Trail> trails = new List();
 List<Trail> localTrails = new List();
@@ -53,15 +62,15 @@ Settings settings;
 final ThemeData darkTheme = new ThemeData(
   brightness: Brightness.dark,
   primaryTextTheme: new TextTheme(caption: new TextStyle(color: Colors.white)),
-  hintColor: Colors.white,
-  highlightColor: Colors.white,
-  textSelectionColor: Colors.white,
-  textSelectionHandleColor: Colors.white,
   buttonColor: Colors.grey,
   splashColor: Colors.teal,
+  hintColor: Colors.grey,
+  disabledColor: Colors.grey[600]
 );
 final ThemeData lightTheme = new ThemeData(
-  brightness: Brightness.light
+  brightness: Brightness.light,
+  hintColor: Colors.grey,
+  disabledColor: Colors.grey[600]
 );
 
 
@@ -88,6 +97,7 @@ var aveCount = 1;
 var aveSpeed = 0.0;
 var uuid = new Uuid();
 var tempSpeed = 0.0;
+var _currentIndex = 0;
 
 ThemeData theme;
 bool showDebug = false;
@@ -135,6 +145,9 @@ class _MapPageState extends State<MapPage> {
 
   //MapView mapView = new MapView();
 
+  //Colors used for icons and indicating a non usable icon
+  Color iconColor;
+  Color disabledIconColor;
 
   //Dashboard Values
   double speedVal = 0.0;
@@ -193,6 +206,11 @@ class _MapPageState extends State<MapPage> {
     return user;
   }
 
+  bool isRiding = false;
+  Trail ridingTrail;
+
+
+
   //@sam
   Future _handleSignOut() async {
     await _auth.signOut();
@@ -245,7 +263,7 @@ class _MapPageState extends State<MapPage> {
     distance = data["distance"];
     Polyline line = buildFromdb(jointType, color, width, id, points);
     generateTrails(fileName, name, line.points,
-        line, "this is a test", time, avgSpeed.toDouble(), distance, true);
+        line, "this is a test", time, avgSpeed.toDouble(), distance.toDouble(), false);
   }
 
   //we can trim down the code in these eventually
@@ -324,7 +342,6 @@ class _MapPageState extends State<MapPage> {
 
     //Listener for marker taps
     mapView.onTouchAnnotation.listen((annotation) {
-      print("marker ${annotation.id} tapped");
 
         for (var line in loadLines) {
           if (line.id == annotation.id) {
@@ -335,19 +352,23 @@ class _MapPageState extends State<MapPage> {
 
     //Listener for infoWindow taps
     mapView.onInfoWindowTapped.listen((marker) {
-      print("infoWindow ${marker.id} tapped");
 
       mapView.dismiss();
 
       //Navigate to saved trails list at certain trail
       //TODO: decide to go to savedTrails or localTrails
-      Navigator.push(context, MaterialPageRoute(builder:
-          (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: marker.id, callback: (str, trail) => savedTrailsOption(str, trail))));
+
+      setState(() {
+        _onItemTapped(3, trailID: marker.id);
+      });
+
+
+//      Navigator.push(context, MaterialPageRoute(builder:
+//          (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: marker.id, callback: (str, trail) => savedTrailsOption(str, trail))));
     });
 
     //Listener for polyline taps
     mapView.onTouchPolyline.listen((polyline) {
-      print("polyline ${polyline.id} tapped");
 
       mapView.removePolyline(polyline);
 
@@ -366,43 +387,45 @@ class _MapPageState extends State<MapPage> {
     mapView.setPolylines(loadLines);
   }
 
-  void toggleRecording() {
-
-    //Get correct units
-//    SettingsMenu settings = new SettingsMenu();
+//  void toggleRecording() {
 //
-//    isMetricSpeed = settings.getIsMetricSpeed;
-//    isMetricDist = settings.getIsMetricDist;
-
-    //toggle the isRecording boolean
-    setState(() => isRecording = !isRecording);
-
-    //starts stream if isRecording is true
-    if (isRecording){
-      //Reset and start stopwatch
-      stopWatch.reset();
-      stopWatch.start();
-      //start timer for stopwatch gui updates
-      timer = new Timer.periodic(new Duration(milliseconds: 30), setStopWatchGui);
-
-      getPositionStream();
-    } else {
-
-      //Stop the stopwatch
-      stopWatch.stop();
-      //Stop the timer
-      timer.cancel();
-
-      //cancels the stream if isRecording is false
-      positionStream.cancel();
-
-      setState(() {
-        speedVal = 0.0;
-        //aveSpeedVal = 0.0;
-      });
-
-    }
-  }
+//    //Get correct units
+////    SettingsMenu settings = new SettingsMenu();
+////
+////    isMetricSpeed = settings.getIsMetricSpeed;
+////    isMetricDist = settings.getIsMetricDist;
+//
+//    //toggle the isRecording boolean
+//    setState(() => isRecording = !isRecording);
+//
+//    //starts stream if isRecording is true
+//    if (isRecording){
+//      //Reset and start stopwatch
+//      stopWatch.reset();
+//      stopWatch.start();
+//      //start timer for stopwatch gui updates
+//      timer = new Timer.periodic(new Duration(milliseconds: 30), setStopWatchGui);
+//
+//      getPositionStream();
+//
+//
+//    } else {
+//
+//      //Stop the stopwatch
+//      stopWatch.stop();
+//      //Stop the timer
+//      timer.cancel();
+//
+//      //cancels the stream if isRecording is false
+//      positionStream.cancel();
+//
+//      setState(() {
+//        speedVal = 0.0;
+//        //aveSpeedVal = 0.0;
+//      });
+//
+//    }
+//  }
 
   void getPositionStream() {
 
@@ -492,7 +515,7 @@ class _MapPageState extends State<MapPage> {
 
   //String
   double convertSpeed(var speed){
-    
+
     if(isKph) {
       //Convert from Mps to Kph -- 1 mps = 3.6 kph
       double speedKph = speed * 3.6;
@@ -534,7 +557,7 @@ class _MapPageState extends State<MapPage> {
 
 
   void calculateDistance(Location loc1, Location loc2) async {
-    
+
     /// Source for calculation, needed because all the plugins don't work
     ///
     /// https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
@@ -549,7 +572,7 @@ class _MapPageState extends State<MapPage> {
 
     var distanceInKm = 12742 * math.asin(math.sqrt(a));
 
-    
+
     setState(() {
       distanceTraveledVal += distanceInKm;
     });
@@ -557,7 +580,32 @@ class _MapPageState extends State<MapPage> {
     dist += distanceInKm;
   }
 
+  void rideTrail(Trail trail) {
 
+    isRiding = true;
+    ridingTrail = trail;
+
+    _children = [
+      Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, rideTrail: trail, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+      null,
+      LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+      SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+    ];
+
+    setState(() {
+      _currentIndex = 0;
+    });
+
+  }
+
+  void updateWidget() {
+    _children = [
+      Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+      null,
+      LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+      SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+    ];
+  }
 
 
   //this class builds the initial static map we need to figure out what
@@ -573,6 +621,18 @@ class _MapPageState extends State<MapPage> {
       });
       //Get saved trails
       buildFromJson();
+
+      iconColor = theme.hintColor;
+      disabledIconColor = theme.disabledColor;
+
+      _children = [
+        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+        null,
+        LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+      ];
+
+
     });
     //get th users current location
     getCurrentLocation();
@@ -581,6 +641,14 @@ class _MapPageState extends State<MapPage> {
     //Make Stopwatch -- stopped with zero elapsed time
     stopWatch = new Stopwatch();
 
+      //_children = new List();
+//      _children.add(LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)));
+//      _children.add(SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)));
+//    _children = [
+//      PlaceholderWidget(Colors.white),
+//      PlaceholderWidget(Colors.deepOrange),
+//      PlaceholderWidget(Colors.green)
+//    ];
 
 
   }
@@ -607,38 +675,104 @@ class _MapPageState extends State<MapPage> {
     return settings;
   }
 
+  Duration convertToDuration(String val) {
+
+    List<String> temp = val.split(new RegExp("([:.])"));
+
+    Duration d = new Duration(
+        hours: int.parse(temp[0]),
+        minutes: int.parse(temp[1]),
+        seconds: int.parse(temp[2]),
+        milliseconds: int.parse(temp[3])
+    );
+
+    return d;
+
+  }
+
 
   //saveTrail Method
   //woo time to save
-  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance){
+  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic, bool isUpdate, {String file}){
 
-    String id = uuid.v1();
-    String fileName = "trail-" + trailName + "-" + id;
+    String fileName;
 
-    if(count > 1) {
-      Map<String, dynamic> tInfo = lines[0].toMap();
-      tInfo["time"] = time;
-      tInfo["avgSpeed"] = avgSpeed;
-      tInfo["distance"] = distance;
-      //lines.forEach((line) => print(line.toMap()));
+    if (file == null) {
+      String id = uuid.v1();
+      fileName = "trail-" + trailName + "-" + id;
+    } else {
+      fileName = file;
+    }
 
-      //Function call to add new trail onto the database
 
-      createJson(tInfo, dir, fileName);
-      tInfo["name"] = trailName;
-      tInfo["fileName"] = fileName;
-      sendData(tInfo , fileName);
+    if(lines[0].points.length > 1) {
 
-      this.setState(() =>
-      trailContent = json.decode(trailsJsonFile.readAsStringSync()));
-      print("saved: $fileName");
+      if (isUpdate){
+        Map<String, dynamic> tInfo = lines[0].toMap();
 
-//      print("LOOK HERE: " + lines[0].points.toString());
-//
-//      List<Location> points = lines[0].points;
-//
-//      //Add to the saved trail list
-//      generateTrails(fileName, trailName, points, lines[0], "Trail", false);
+        //get the trail to compare to
+        for (var trail in trails) {
+          if (trail.id == file) {
+
+            if(convertToDuration(time) < convertToDuration(trail.time)) {
+              tInfo["time"] = time;
+            } else {
+              tInfo["time"] = trail.time;
+            }
+
+            tInfo["avgSpeed"] = (avgSpeed + trail.avgSpeed) / 2;
+            tInfo["distance"] = trail.length;
+
+            break;
+          }
+        }
+
+        createJson(tInfo, dir, fileName);
+        tInfo["name"] = trailName;
+        tInfo["fileName"] = fileName;
+
+        //Send to database only if make public was checked.
+//        if (isPublic) {
+//          sendData(tInfo, fileName);
+//        }
+
+        this.setState(() =>
+        trailContent = json.decode(trailsJsonFile.readAsStringSync()));
+        print("saved: $fileName");
+
+        //remove trail form trail list so it gets rebuilt
+        for (var trail in trails) {
+          if (trail.id == file) {
+            trails.remove(trail);
+            break;
+          }
+        }
+
+
+      } else {
+        Map<String, dynamic> tInfo = lines[0].toMap();
+        tInfo["time"] = time;
+        tInfo["avgSpeed"] = avgSpeed;
+        tInfo["distance"] = distance;
+        //lines.forEach((line) => print(line.toMap()));
+
+        //Function call to add new trail onto the database
+
+
+        createJson(tInfo, dir, fileName);
+        tInfo["name"] = trailName;
+        tInfo["fileName"] = fileName;
+
+        //Send to database only if make public was checked.
+        if (isPublic) {
+          sendData(tInfo, fileName);
+        }
+
+        this.setState(() =>
+        trailContent = json.decode(trailsJsonFile.readAsStringSync()));
+        print("saved: $fileName");
+      }
+
 
       //Clear the polyLines object and set fileExists back to false
       polyLines.clear();
@@ -664,13 +798,15 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+
   //Builds a List of trail objects for the saved trails list
   void generateTrails(String id, String name, List<Location> points,
-      Polyline polyline, String description, String time, double avgSpeed, double distance, bool isDB) {
+      Polyline polyline, String description, String time, double avgSpeed, double distance, bool fromSaved) {
 
     Trail newTrail;
 
-    bool exists = false;
+    bool existsLocal = false;
+    bool existsSaved = false;
 
     //Set style for the static maps
     if (settings.isDarkTheme) {
@@ -690,22 +826,17 @@ class _MapPageState extends State<MapPage> {
 
       trails.forEach((element) {
         if (element.id == id){
-          exists = true;
+          existsSaved = true;
         }
       });
-      int count = 0;
       localTrails.forEach((element) {
         if (element.id == id) {
-          exists = true;
-        }else{
-          count ++;
+          existsLocal = true;
         }
       });
-      if(count == localTrails.length)
-        exists = false;
 
       //if the trail doesn't exist add the trail
-      if (!exists) {
+      if ((fromSaved && !existsSaved) || !fromSaved) {
 
         Location startPoint = points.first;
         Location endPoint = points.last;
@@ -732,9 +863,11 @@ class _MapPageState extends State<MapPage> {
           newTrail = new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed);
         }
 
-        if (isDB) {
+        if (!fromSaved) {
+          //put into db list
           localTrails.add(newTrail);
         } else {
+          //put into saved trails list
           trails.add(newTrail);
         }
       }
@@ -743,17 +876,17 @@ class _MapPageState extends State<MapPage> {
 
       trails.forEach((element) {
         if (element.id == id){
-          exists = true;
+          existsSaved = true;
         }
       });
       localTrails.forEach((element) {
         if (element.id == id) {
-          exists = true;
+          existsLocal = true;
         }
       });
 
       //if the trail doesn't exist add the trail
-      if (!exists) {
+      if ((fromSaved && !existsSaved) || !fromSaved) {
 
         Location startPoint = points.first;
         Location endPoint = points.last;
@@ -779,15 +912,21 @@ class _MapPageState extends State<MapPage> {
           newTrail = new Trail(id, name, points, markers[0], markers[1], polyline, staticMapUri, description, time, distance, avgSpeed);
         }
 
-        if (isDB) {
+        if (!fromSaved) {
+          //put into db list
           localTrails.add(newTrail);
         } else {
+          //put into saved trails list
           trails.add(newTrail);
         }
       }
     }
 
     sortTrails();
+    sortLocalTrails();
+
+//    print("Trails: " + trails.length.toString());
+//    print("Local Trails: " + localTrails.length.toString());
 
   }
 
@@ -804,7 +943,7 @@ class _MapPageState extends State<MapPage> {
     if (newPoints.length > 300) {
       return shortenPointsList(newPoints);
     } else {
-      print("________" + newPoints.length.toString() + "____________" );
+//      print("________" + newPoints.length.toString() + "____________" );
 
       return newPoints;
     }
@@ -913,7 +1052,7 @@ class _MapPageState extends State<MapPage> {
 
             loadMarkers.add(marker);
 
-            generateTrails(id, name, points, line, "Temp Description", time, avgSpeed, distance, false);
+            generateTrails(id, name, points, line, "Temp Description", time, avgSpeed, distance, true);
 
 
           }
@@ -922,6 +1061,11 @@ class _MapPageState extends State<MapPage> {
       //mapView.setPolylines(loadLines);
       mapView.setMarkers(loadMarkers);
     });
+  }
+
+  void addToSavedList(Trail trail) {
+    List<Polyline> lines = [trail.polyline];
+    saveTrail(trail.name, lines, trail.time, trail.avgSpeed, trail.length, false, false, file: trail.id);
   }
 
   void deleteFile(String file){
@@ -939,7 +1083,6 @@ class _MapPageState extends State<MapPage> {
         }
       });
     });
-
   }
 
   //gets the speed preference
@@ -1012,6 +1155,15 @@ class _MapPageState extends State<MapPage> {
     loadMarkers.clear();
     buildFromJson();
     toggleSettings(settings);
+
+    //TODO figure out a better way to accomplish the settings callback rendering for the children
+    _children = [
+      Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+      null,
+      LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+      SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+    ];
+
   }
 
   void savedTrailsOption(String choice, Trail trail) {
@@ -1021,8 +1173,41 @@ class _MapPageState extends State<MapPage> {
       showMap(trail.points, trail.points[middle], 14.0);
     } else if (choice == '1') {
       deleteFile(trail.id);
+    } else if (choice == '2') {
+      rideTrail(trail);
     }
 
+  }
+
+  void localTrailCallback(String choice, Trail trail) {
+    if (choice == '0'){
+      int middle = (trail.points.length / 2).round();
+      showMap(trail.points, trail.points[middle], 14.0);
+    } else if (choice == '1') {
+      addToSavedList(trail);
+    } else if (choice == '2') {
+      deleteFile(trail.id);
+
+      //remove from the list
+      Trail temp;
+      for (var t in trails) {
+        if (trail.id == t.id) {
+          temp = t;
+          break;
+        }
+      }
+      trails.remove(temp);
+    }
+  }
+
+  void saveCallback(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic) {
+
+    if(isPublic != null) {
+      saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, false);
+    } else {
+      saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, true, file: trailName);
+      isRiding = false;
+    }
   }
 
   void toggleSettings(Settings set) {
@@ -1068,6 +1253,12 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
+  void sortLocalTrails() {
+    localTrails.sort((a, b) {
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+  }
+
   /*
   * This is the face of the app. It will determine what it looks like
   * from the app bar at the top, to each column that is placed below it
@@ -1096,227 +1287,32 @@ class _MapPageState extends State<MapPage> {
           )
         ],
       ),
-      body: new Container(
-       // decoration: new BoxDecoration(color: Colors.black87),
-        child: new Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            new Container(
-              child: new Column(
-                mainAxisAlignment: MainAxisAlignment.center ,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  new Container(
-                    child: new Text(
-                        speedVal.toStringAsFixed(1),
-                        textAlign: TextAlign.center,
-                        style: new TextStyle(fontSize: 60.0, fontWeight: FontWeight.bold)
-                    ),
-                  ),
-                  new Container(
-                    child: new Text(
-                      isKph ? 'Current Speed(kph)' : 'Current Speed(mph)',
-                      textAlign: TextAlign.center,
-                      style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)
-                    ),
-                  ),
-                ],
-              ),
+      body:_children[_currentIndex],
+        bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: _currentIndex,
+          fixedColor: Colors.black,
+          items: <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.home, /*color: iconColor*/),
+                title: new Text(""),
+                activeIcon: new Icon(Icons.home, /*color: Colors.black*/)
             ),
-            new Row(// upper middle
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                new Container(
-                  child: new Column(
-                    mainAxisAlignment: MainAxisAlignment.center ,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      new Container(
-//                        width: 150.0,
-//                        height: 40.0,
-                        //color: Colors.blue,
-                        child: new Text(
-                            timeVal,
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 30.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                        child: new Text(
-                          'Time',
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                new Container(
-                  child: new Column(
-                    mainAxisAlignment: MainAxisAlignment.center ,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      new Container(
-//                        width: 150.0,
-//                        height: 40.0,
-                        child: new Text(
-                            convertDist(distanceTraveledVal).toStringAsFixed(3),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 30.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                        child: new Text(
-                          isMeters ? 'Distance Traveled(km)' : 'Distance Traveled(mi)',
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            BottomNavigationBarItem(
+              icon: new Icon(Icons.map, /*color: iconColor*/),
+              title: new Text(""),
+                activeIcon: new Icon(Icons.map, /*color: Colors.black*/)
             ),
-            new Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                new Container(
-                  child: new Column(
-                    mainAxisAlignment: MainAxisAlignment.center ,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      new Container(
-//                        width: 150.0,
-//                        height: 40.0,
-                        child: new Text(
-                            aveSpeedVal.toStringAsFixed(1),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                        child: new Text(
-                          isKph ? 'Average Speed(kph)' : 'Average Speed(mph)',
-                          textAlign: TextAlign.center,
-                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                new Container(
-                  child: new Column(
-                    mainAxisAlignment: MainAxisAlignment.center ,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      new Container(
-//                        width: 150.0,
-//                        height: 40.0,
-                        child: new Text(
-                            "                           "/*distanceLeftVal.toStringAsFixed(1)*/,
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-//                      new Container(
-//                        child: new Text(
-//                          'Remaining Distance(mi)',
-//                          textAlign: TextAlign.center,
-//                          style: new TextStyle( fontSize: 12.0, fontWeight: FontWeight.bold, ),
-//                        ),
-//                      ),
-                    ],
-                  ),
-                ),
-              ],
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.playlist_add_check, /*color: disabledIconColor*/),
+                title: new Text(""),
+                activeIcon: new Icon(Icons.playlist_add_check, /*color: Colors.black*/)
             ),
-            //Debug optional Widgets
-            new Container(
-              //height: 40.0,
-              child: showDebug ? new Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: <Widget>[
-                  new Column(
-                    children: <Widget>[
-                      new Container(
-                        // width: 100.0,
-                        //height: 20.0,
-                        child: new Text(
-                            countVal.toString(),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                          child: new Text('Count')
-                      )
-                    ],
-                  ),
-                  new Column(
-                    children: <Widget>[
-                      new Container(
-                        //width: 100.0,
-                        // height: 20.0,
-                        child: new Text(
-                            latVal.toString(),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                          child: new Text('Latitude')
-                      )
-                    ],
-                  ),
-                  new Column(
-                    children: <Widget>[
-                      new Container(
-                        //width: 100.0,
-                        //height: 20.0,
-                        child: new Text(
-                            longVal.toString(),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                          child: new Text('Longitude')
-                      )
-                    ],
-                  ),
-                  new Column(
-                    children: <Widget>[
-                      new Container(
-                        //width: 100.0,
-                        //height: 20.0,
-                        child: new Text(
-                            altVal.round().toString(),
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold)
-                        ),
-                      ),
-                      new Container(
-                          child: new Text(isMeters ? 'Altitude(m)' : 'Altitude(ft)')
-                      )
-                    ],
-                  ),
-                ],
-              ) : null,
-            ),
-            new Container(
-        child: new Column(
-        children: <Widget>[
-          new Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              new RaisedButton(
-                  child: Text('Map'),
-                  elevation: 2.0,
-                  onPressed: () => showMap(null, null,12.0)
-              ),
-              new RaisedButton(
-                  child: Text("Trails"),
-                  onPressed: () {
+            BottomNavigationBarItem(
+                icon: new Icon(Icons.playlist_add_check, /*color: disabledIconColor*/),
+                title: new Text(""),
+                activeIcon: new Icon(Icons.playlist_add_check, /*color: Colors.black*/)
+            )
 
                     Navigator.push(context, MaterialPageRoute(builder:
                       (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail) => savedTrailsOption(str, trail))));
@@ -1364,10 +1360,78 @@ class _MapPageState extends State<MapPage> {
             // child: new Text("LOAD TRAIL"),
             //  onPressed: () => buildFromJson(),)
           ],
+
+          onTap: _onItemTapped,
         ),
-      ),
     ),
     );
+  }
+
+  void _onItemTapped(int index, {String trailID}) {
+
+    if(trailID == null) {
+
+      if(isRiding){
+        _children = [
+          Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, rideTrail: ridingTrail, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+          null,
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+        ];
+      } else {
+        _children = [
+          Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+          null,
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+        ];
+      }
+
+
+
+      setState(() {
+        if (index == 1 && !isRiding) {
+          showMap(null, null, 12.0);
+          _currentIndex = 0;
+        } else if (index == 1 && isRiding) {
+          showMap(ridingTrail.points, ridingTrail.points[0], 14.0);
+          _currentIndex = 0;
+        } else {
+          _currentIndex = index;
+        }
+      });
+    } else {
+
+      if(isRiding) {
+        _children = [
+          Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, rideTrail: ridingTrail, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+          null,
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+        ];
+      } else {
+        _children = [
+          Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+          null,
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: trailID, callback: (str, trail)=> savedTrailsOption(str, trail))
+        ];
+      }
+
+      setState(() {
+        if (index == 1 && !isRiding) {
+          showMap(null, null, 12.0);
+          _currentIndex = 0;
+        } else if (index == 1 && isRiding) {
+          showMap(ridingTrail.points, ridingTrail.points[0], 14.0);
+          _currentIndex = 0;
+        } else {
+          _currentIndex = index;
+        }
+      });
+    }
+
+
   }
 
   //Have user enter trail information
@@ -1391,6 +1455,11 @@ class _MapPageState extends State<MapPage> {
             ],
           ),
           actions: <Widget>[
+            new Text("Make Public"),
+            new Checkbox(
+                value: false,
+                onChanged: null
+            ),
             new FlatButton(
                 child: const Text('Cancel'),
                 onPressed: () {
@@ -1401,7 +1470,7 @@ class _MapPageState extends State<MapPage> {
                 onPressed: () {
                   Navigator.pop(context);
                   print(trailNameController.text);
-                  saveTrail(trailNameController.text, polyLines, timeVal, aveSpeed, distanceTraveledVal);
+                 // saveTrail(trailNameController.text, polyLines, timeVal, aveSpeed, distanceTraveledVal);
                   trailNameController.text = "";
                 })
           ],
