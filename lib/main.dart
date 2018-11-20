@@ -188,6 +188,9 @@ class _MapPageState extends State<MapPage> {
 
   double dist = 0.0;
 
+  bool isRiding = false;
+  Trail ridingTrail;
+
 
 
   sendData(dynamic temp, String uName){
@@ -284,7 +287,6 @@ class _MapPageState extends State<MapPage> {
 
     //Listener for marker taps
     mapView.onTouchAnnotation.listen((annotation) {
-      print("marker ${annotation.id} tapped");
 
         for (var line in loadLines) {
           if (line.id == annotation.id) {
@@ -295,7 +297,6 @@ class _MapPageState extends State<MapPage> {
 
     //Listener for infoWindow taps
     mapView.onInfoWindowTapped.listen((marker) {
-      print("infoWindow ${marker.id} tapped");
 
       mapView.dismiss();
 
@@ -313,7 +314,6 @@ class _MapPageState extends State<MapPage> {
 
     //Listener for polyline taps
     mapView.onTouchPolyline.listen((polyline) {
-      print("polyline ${polyline.id} tapped");
 
       mapView.removePolyline(polyline);
 
@@ -332,45 +332,45 @@ class _MapPageState extends State<MapPage> {
     mapView.setPolylines(loadLines);
   }
 
-  void toggleRecording() {
-
-    //Get correct units
-//    SettingsMenu settings = new SettingsMenu();
+//  void toggleRecording() {
 //
-//    isMetricSpeed = settings.getIsMetricSpeed;
-//    isMetricDist = settings.getIsMetricDist;
-
-    //toggle the isRecording boolean
-    setState(() => isRecording = !isRecording);
-
-    //starts stream if isRecording is true
-    if (isRecording){
-      //Reset and start stopwatch
-      stopWatch.reset();
-      stopWatch.start();
-      //start timer for stopwatch gui updates
-      timer = new Timer.periodic(new Duration(milliseconds: 30), setStopWatchGui);
-
-      getPositionStream();
-
-
-    } else {
-
-      //Stop the stopwatch
-      stopWatch.stop();
-      //Stop the timer
-      timer.cancel();
-
-      //cancels the stream if isRecording is false
-      positionStream.cancel();
-
-      setState(() {
-        speedVal = 0.0;
-        //aveSpeedVal = 0.0;
-      });
-
-    }
-  }
+//    //Get correct units
+////    SettingsMenu settings = new SettingsMenu();
+////
+////    isMetricSpeed = settings.getIsMetricSpeed;
+////    isMetricDist = settings.getIsMetricDist;
+//
+//    //toggle the isRecording boolean
+//    setState(() => isRecording = !isRecording);
+//
+//    //starts stream if isRecording is true
+//    if (isRecording){
+//      //Reset and start stopwatch
+//      stopWatch.reset();
+//      stopWatch.start();
+//      //start timer for stopwatch gui updates
+//      timer = new Timer.periodic(new Duration(milliseconds: 30), setStopWatchGui);
+//
+//      getPositionStream();
+//
+//
+//    } else {
+//
+//      //Stop the stopwatch
+//      stopWatch.stop();
+//      //Stop the timer
+//      timer.cancel();
+//
+//      //cancels the stream if isRecording is false
+//      positionStream.cancel();
+//
+//      setState(() {
+//        speedVal = 0.0;
+//        //aveSpeedVal = 0.0;
+//      });
+//
+//    }
+//  }
 
   void getPositionStream() {
 
@@ -525,7 +525,32 @@ class _MapPageState extends State<MapPage> {
     dist += distanceInKm;
   }
 
+  void rideTrail(Trail trail) {
 
+    isRiding = true;
+    ridingTrail = trail;
+
+    _children = [
+      Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, rideTrail: trail, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+      null,
+      LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+      SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+    ];
+
+    setState(() {
+      _currentIndex = 0;
+    });
+
+  }
+
+  void updateWidget() {
+    _children = [
+      Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+      null,
+      LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+      SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+    ];
+  }
 
 
   //this class builds the initial static map we need to figure out what
@@ -594,48 +619,104 @@ class _MapPageState extends State<MapPage> {
     return settings;
   }
 
+  Duration convertToDuration(String val) {
+
+    List<String> temp = val.split(new RegExp("([:.])"));
+
+    Duration d = new Duration(
+        hours: int.parse(temp[0]),
+        minutes: int.parse(temp[1]),
+        seconds: int.parse(temp[2]),
+        milliseconds: int.parse(temp[3])
+    );
+
+    return d;
+
+  }
+
 
   //saveTrail Method
   //woo time to save
-  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic, {String file}){
+  void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic, bool isUpdate, {String file}){
 
-    if (fileName == null) {
+    String fileName;
+
+    if (file == null) {
       String id = uuid.v1();
-      String fileName = "trail-" + trailName + "-" + id;
+      fileName = "trail-" + trailName + "-" + id;
     } else {
       fileName = file;
     }
 
 
     if(lines[0].points.length > 1) {
-      Map<String, dynamic> tInfo = lines[0].toMap();
-      tInfo["time"] = time;
-      tInfo["avgSpeed"] = avgSpeed;
-      tInfo["distance"] = distance;
-      //lines.forEach((line) => print(line.toMap()));
 
-      //Function call to add new trail onto the database
+      if (isUpdate){
+        Map<String, dynamic> tInfo = lines[0].toMap();
+
+        //get the trail to compare to
+        for (var trail in trails) {
+          if (trail.id == file) {
+
+            if(convertToDuration(time) < convertToDuration(trail.time)) {
+              tInfo["time"] = time;
+            } else {
+              tInfo["time"] = trail.time;
+            }
+
+            tInfo["avgSpeed"] = (avgSpeed + trail.avgSpeed) / 2;
+            tInfo["distance"] = trail.length;
+
+            break;
+          }
+        }
+
+        createJson(tInfo, dir, fileName);
+        tInfo["name"] = trailName;
+        tInfo["fileName"] = fileName;
+
+        //Send to database only if make public was checked.
+//        if (isPublic) {
+//          sendData(tInfo, fileName);
+//        }
+
+        this.setState(() =>
+        trailContent = json.decode(trailsJsonFile.readAsStringSync()));
+        print("saved: $fileName");
+
+        //remove trail form trail list so it gets rebuilt
+        for (var trail in trails) {
+          if (trail.id == file) {
+            trails.remove(trail);
+            break;
+          }
+        }
 
 
-      createJson(tInfo, dir, fileName);
-      tInfo["name"] = trailName;
-      tInfo["fileName"] = fileName;
+      } else {
+        Map<String, dynamic> tInfo = lines[0].toMap();
+        tInfo["time"] = time;
+        tInfo["avgSpeed"] = avgSpeed;
+        tInfo["distance"] = distance;
+        //lines.forEach((line) => print(line.toMap()));
 
-      //Send to database only if make public was checked.
-      if (isPublic) {
-        sendData(tInfo, fileName);
+        //Function call to add new trail onto the database
+
+
+        createJson(tInfo, dir, fileName);
+        tInfo["name"] = trailName;
+        tInfo["fileName"] = fileName;
+
+        //Send to database only if make public was checked.
+        if (isPublic) {
+          sendData(tInfo, fileName);
+        }
+
+        this.setState(() =>
+        trailContent = json.decode(trailsJsonFile.readAsStringSync()));
+        print("saved: $fileName");
       }
 
-      this.setState(() =>
-      trailContent = json.decode(trailsJsonFile.readAsStringSync()));
-      print("saved: $fileName");
-
-//      print("LOOK HERE: " + lines[0].points.toString());
-//
-//      List<Location> points = lines[0].points;
-//
-//      //Add to the saved trail list
-//      generateTrails(fileName, trailName, points, lines[0], "Trail", false);
 
       //Clear the polyLines object and set fileExists back to false
       polyLines.clear();
@@ -660,6 +741,7 @@ class _MapPageState extends State<MapPage> {
 
     }
   }
+
 
   //Builds a List of trail objects for the saved trails list
   void generateTrails(String id, String name, List<Location> points,
@@ -787,8 +869,8 @@ class _MapPageState extends State<MapPage> {
     sortTrails();
     sortLocalTrails();
 
-    print("Trails: " + trails.length.toString());
-    print("Local Trails: " + localTrails.length.toString());
+//    print("Trails: " + trails.length.toString());
+//    print("Local Trails: " + localTrails.length.toString());
 
   }
 
@@ -805,7 +887,7 @@ class _MapPageState extends State<MapPage> {
     if (newPoints.length > 300) {
       return shortenPointsList(newPoints);
     } else {
-      print("________" + newPoints.length.toString() + "____________" );
+//      print("________" + newPoints.length.toString() + "____________" );
 
       return newPoints;
     }
@@ -927,7 +1009,7 @@ class _MapPageState extends State<MapPage> {
 
   void addToSavedList(Trail trail) {
     List<Polyline> lines = [trail.polyline];
-    saveTrail(trail.name, lines, trail.time, trail.avgSpeed, trail.length, false, file: trail.id);
+    saveTrail(trail.name, lines, trail.time, trail.avgSpeed, trail.length, false, false, file: trail.id);
   }
 
   void deleteFile(String file){
@@ -1035,6 +1117,8 @@ class _MapPageState extends State<MapPage> {
       showMap(trail.points, trail.points[middle], 14.0);
     } else if (choice == '1') {
       deleteFile(trail.id);
+    } else if (choice == '2') {
+      rideTrail(trail);
     }
 
   }
@@ -1061,7 +1145,13 @@ class _MapPageState extends State<MapPage> {
   }
 
   void saveCallback(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic) {
-    saveTrail(trailName, lines, time, avgSpeed, distance, isPublic);
+
+    if(isPublic != null) {
+      saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, false);
+    } else {
+      saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, true, file: trailName);
+      isRiding = false;
+    }
   }
 
   void toggleSettings(Settings set) {
@@ -1180,16 +1270,30 @@ class _MapPageState extends State<MapPage> {
 
     if(trailID == null) {
 
-      _children = [
-        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
-        null,
-        LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
-        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
-      ];
+      if(isRiding){
+        _children = [
+          Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, rideTrail: ridingTrail, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+          null,
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+        ];
+      } else {
+        _children = [
+          Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+          null,
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+        ];
+      }
+
+
 
       setState(() {
-        if (index == 1) {
+        if (index == 1 && !isRiding) {
           showMap(null, null, 12.0);
+          _currentIndex = 0;
+        } else if (index == 1 && isRiding) {
+          showMap(ridingTrail.points, ridingTrail.points[0], 14.0);
           _currentIndex = 0;
         } else {
           _currentIndex = index;
@@ -1197,16 +1301,28 @@ class _MapPageState extends State<MapPage> {
       });
     } else {
 
-      _children = [
-        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
-        null,
-        LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
-        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: trailID, callback: (str, trail)=> savedTrailsOption(str, trail))
-      ];
+      if(isRiding) {
+        _children = [
+          Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, rideTrail: ridingTrail, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+          null,
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+        ];
+      } else {
+        _children = [
+          Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+          null,
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: trailID, callback: (str, trail)=> savedTrailsOption(str, trail))
+        ];
+      }
 
       setState(() {
-        if (index == 1) {
+        if (index == 1 && !isRiding) {
           showMap(null, null, 12.0);
+          _currentIndex = 0;
+        } else if (index == 1 && isRiding) {
+          showMap(ridingTrail.points, ridingTrail.points[0], 14.0);
           _currentIndex = 0;
         } else {
           _currentIndex = index;
