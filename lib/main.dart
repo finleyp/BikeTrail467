@@ -34,7 +34,6 @@ var geolocator = Geolocator();
 
 List<Polyline> polyLines = new List();
 List<Polyline> loadLines = new List();
-List<Polyline> dbLines = new List();
 List<Marker> loadMarkers = new List();
 
 
@@ -98,6 +97,8 @@ bool isMeters = false;
 //authenticate stuff following steps in api
 final GoogleSignIn _googleSignIn = GoogleSignIn();
 final FirebaseAuth _auth = FirebaseAuth.instance;
+String uID = "";
+
 
 Polyline newLine = new Polyline(
     "1",
@@ -187,29 +188,46 @@ class _MapPageState extends State<MapPage> {
       idToken: googleAuth.idToken,
     );
     print("signed in " + user.displayName);
+    uID = user.uid;
+    print("uID: " + uID);
     return user;
   }
 
-  sendData(dynamic temp, String uName){
-    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName);
+  //@sam
+  Future _handleSignOut() async {
+    await _auth.signOut();
+    await _googleSignIn.signOut();
+  }
+
+  sendData(dynamic temp, String trailID){
+    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child("Public").child(trailID);
     print("Attempting to send to database...");
     database.set(temp);
   }
 
-  sendDataAll(dynamic temp, String uName){
-    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName);
+
+  //@Sam this method is to save ther user
+  sendDataUser(dynamic temp, String uName,String trailID){
+    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName).child(trailID);
     print("Attempting to send to database...");
     database.set(temp);
   }
 
   getData(){
-    var ref =  FirebaseDatabase.instance.reference().child("Trails");
+    var ref =  FirebaseDatabase.instance.reference().child("Trails").child("Public");
     ref.onChildAdded.listen((event) {
 
       handler(event);
     });
   }
 
+  //@sam this is to load user data
+  getDataUser(String uName){
+    var ref =  FirebaseDatabase.instance.reference().child("Trails").child(uName);
+    ref.onChildAdded.listen((event) {
+      userHandler(event);
+    });
+  }
 
   handler(event){
     var data = new Map<String, dynamic>.from(event.snapshot.value);
@@ -226,6 +244,28 @@ class _MapPageState extends State<MapPage> {
     time = data["time"];
     distance = data["distance"];
     Polyline line = buildFromdb(jointType, color, width, id, points);
+    generateTrails(fileName, name, line.points,
+        line, "this is a test", time, avgSpeed.toDouble(), distance, true);
+  }
+
+  //we can trim down the code in these eventually
+  userHandler(event){
+    var data = new Map<String, dynamic>.from(event.snapshot.value);
+    var jointType, color, width, id, points, name, fileName, avgSpeed,time,distance;
+
+    jointType = data["jointType"];
+    color = data["color"];
+    width = data["width"];
+    id = data["id"];
+    points = data["points"];
+    name = data["name"];
+    fileName = data["fileName"];
+    avgSpeed = data["avgSpeed"];
+    time = data["time"];
+    distance = data["distance"];
+    Polyline line = buildFromdb(jointType, color, width, id, points);
+    //this line will need to be changed so they know its coming from the users db
+    //not the public one
     generateTrails(fileName, name, line.points,
         line, "this is a test", time, avgSpeed.toDouble(), distance, true);
   }
@@ -249,7 +289,6 @@ class _MapPageState extends State<MapPage> {
         width: width.toDouble(),
         color: Color.fromARGB(a, r, g, b),
         jointType: FigureJointType.round);
-    dbLines.add(line);
     return line;
   }
 
