@@ -46,7 +46,9 @@ List<Widget> _children = [
       PlaceholderWidget(Colors.black)
     ];
 
+//phone saved
 List<Trail> trails = new List();
+//db saved
 List<Trail> localTrails = new List();
 
 Location onLoadLoc;
@@ -209,9 +211,10 @@ class _MapPageState extends State<MapPage> {
       );
       print("signed in " + user.displayName);
       uID = user.uid;
-      //@patton
-      loginSync(uID);
+
       print("uID: " + uID);
+      print("user ID: " + user.uid);
+      loginSync(uID);
       return user;
     } catch (e){
       print(e);
@@ -239,11 +242,9 @@ class _MapPageState extends State<MapPage> {
 
   //@Sam this method is to save ther user
   sendDataUser(dynamic temp,String trailID){
-
-    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(fbUser.uid).child(trailID);
+    print("temp: " + temp.toString());
+    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uID).child(trailID);
     print("Attempting to send to database...");
-    print("__________________________________________________________");
-    print("uID: " + fbUser.uid);
     database.set(temp);
   }
 
@@ -264,35 +265,49 @@ class _MapPageState extends State<MapPage> {
   }
 
   //@patton
-  loginSync(String uName){
+  Future loginSync(String uName) async{
+    print("uname " + uName);
     List<String> dbTrails = [];
     var ref =  FirebaseDatabase.instance.reference().child("Trails").child(uName);
     //first get trails from the db
+    print("a");
     ref.onChildAdded.listen((event) {
-      dbTrails.add(event.snapshot.value[fileName]);
+      dbTrails.add(event.snapshot.value["fileName"]);
+      print("fileName: " + event.snapshot.value["fileName"].toString());
       var found = false;
       //check if they exist locally
-      localTrails.forEach((trail){
-        if(event.snapshot.value[fileName] == trail.id){
+      trails.forEach((trail){
+        if(event.snapshot.value["fileName"] == trail.id){
           found = true;
+          print("ab");
         }
       });
+
       //if they dont then add them
       if(!found){
         userHandler(event);
       }
-    });
-    //next check if the trails are on the db
-    //afraid this wont work
-    localTrails.forEach((trail){
+      print("b");
+      });
+
+
+  }
+
+  //@Patton
+  _notSynced(List<String> dbTrails){
+    trails.forEach((trail){
+      print("dbTrails lenght: " + dbTrails.length.toString());
       var found = false;
       dbTrails.forEach((id){
         if(id == trail.id){
           found = true;
         }
       });
-      if(!found)
+      if(!found) {
+        print(trail);
         sendDataUser(trail, trail.id);
+      }
+      print("c");
     });
   }
 
@@ -835,11 +850,12 @@ class _MapPageState extends State<MapPage> {
           sendData(tInfo, fileName);
         }
 
-        sendDataUser(tInfo, fileName);
+
 
         this.setState(() =>
         trailContent = json.decode(trailsJsonFile.readAsStringSync()));
         print("saved: $fileName");
+        sendDataUser(tInfo, fileName);
       }
 
 
