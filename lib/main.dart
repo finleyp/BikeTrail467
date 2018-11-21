@@ -195,12 +195,14 @@ class _MapPageState extends State<MapPage> {
   Map<String, dynamic> trailContent;
 
   double dist = 0.0;
-
+  FirebaseUser fbUser;
   Future<FirebaseUser> _handleSignIn() async {
 
     try {
       GoogleSignInAccount googleUser = await _googleSignIn.signIn();
       GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      print("access token" + googleAuth.accessToken);
+      print("idToken " + googleAuth.idToken);
       FirebaseUser user = await _auth.signInWithGoogle(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -208,7 +210,7 @@ class _MapPageState extends State<MapPage> {
       print("signed in " + user.displayName);
       uID = user.uid;
       //@patton
-      //loginSync(uID);
+      loginSync(uID);
       print("uID: " + uID);
       return user;
     } catch (e){
@@ -236,9 +238,12 @@ class _MapPageState extends State<MapPage> {
 
 
   //@Sam this method is to save ther user
-  sendDataUser(dynamic temp, String uName,String trailID){
-    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName).child(trailID);
+  sendDataUser(dynamic temp,String trailID){
+
+    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(fbUser.uid).child(trailID);
     print("Attempting to send to database...");
+    print("__________________________________________________________");
+    print("uID: " + fbUser.uid);
     database.set(temp);
   }
 
@@ -287,7 +292,7 @@ class _MapPageState extends State<MapPage> {
         }
       });
       if(!found)
-        sendDataUser(trail, uID, trail.id);
+        sendDataUser(trail, trail.id);
     });
   }
 
@@ -662,45 +667,46 @@ class _MapPageState extends State<MapPage> {
   //size we want it for the app lay out
   void initState() {
     // TODO: implement initState?
-    super.initState();
+      super.initState();
 
-    //get the users settings, do init stuff that depends on settings
-    getSettings().then((result){
-      setState(() {
-        toggleSettings(result);
+
+      //get the users settings, do init stuff that depends on settings
+      getSettings().then((result){
+        setState(() {
+          toggleSettings(result);
+        });
+        //Get saved trails
+        buildFromJson();
+
+        iconColor = theme.hintColor;
+        disabledIconColor = theme.disabledColor;
+
+        _children = [
+          Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+          null,
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+        ];
+
+  //      if(settings.signInValue != null) {
+  //        constants.add(Constants.Settings);
+  //        constants.add(Constants.SignOut);
+  //      } else {
+  //        constants.add(Constants.Settings);
+  //        constants.add(Constants.SignIn);
+  //      }
+
+        //Handle whether a user is signed in or not
+        print("Constants_______ " + constants.toString());
+
+
       });
-      //Get saved trails
-      buildFromJson();
+      //get th users current location
+      getCurrentLocation();
 
-      iconColor = theme.hintColor;
-      disabledIconColor = theme.disabledColor;
-
-      _children = [
-        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
-        null,
-        LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
-        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
-      ];
-
-//      if(settings.signInValue != null) {
-//        constants.add(Constants.Settings);
-//        constants.add(Constants.SignOut);
-//      } else {
-//        constants.add(Constants.Settings);
-//        constants.add(Constants.SignIn);
-//      }
-
-      //Handle whether a user is signed in or not
-      print("Constants_______ " + constants.toString());
-
-
-    });
-    //get th users current location
-    getCurrentLocation();
-
-    getData();
-    //Make Stopwatch -- stopped with zero elapsed time
-    stopWatch = new Stopwatch();
+      getData();
+      //Make Stopwatch -- stopped with zero elapsed time
+      stopWatch = new Stopwatch();
 
       //_children = new List();
 //      _children.add(LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)));
@@ -828,6 +834,8 @@ class _MapPageState extends State<MapPage> {
         if (isPublic) {
           sendData(tInfo, fileName);
         }
+
+        sendDataUser(tInfo, fileName);
 
         this.setState(() =>
         trailContent = json.decode(trailsJsonFile.readAsStringSync()));
@@ -1311,6 +1319,7 @@ class _MapPageState extends State<MapPage> {
       isMeters = set.isMetricDist;
     });
 
+    settings.signInValue = null;
     //change ellipses menu options
     if(settings.signInValue != null) {
       constants = [];
@@ -1531,6 +1540,7 @@ class _MapPageState extends State<MapPage> {
       FirebaseUser user = await _handleSignIn();
       if (user != null) {
         setSignInPref(user.displayName);
+        fbUser = user;
       } else {
         print ("sign in failed");
       }
