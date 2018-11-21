@@ -45,6 +45,7 @@ class _SelectionControl extends State<SettingsMenu> {
 
   @override
   Widget build(BuildContext context) {
+    String signInValue = widget.settings.signInValue;
     bool isMetricSpeed = widget.settings.isMetricSpeed;
     bool isMetricDist = widget.settings.isMetricDist;
     bool isDarkTheme = widget.settings.isDarkTheme;
@@ -94,7 +95,8 @@ class _SelectionControl extends State<SettingsMenu> {
                               widget.settings.setDebug = value;
                             });
                             updatePref(value);
-                          })
+                          }),
+                      Text(signInValue != null ? "You are signed in as $signInValue" : "You are not signed in"),
                     ],
                   ),
                 )

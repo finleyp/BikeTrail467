@@ -109,6 +109,8 @@ final GoogleSignIn _googleSignIn = GoogleSignIn();
 final FirebaseAuth _auth = FirebaseAuth.instance;
 String uID = "";
 
+List<String> constants = new List();
+
 
 Polyline newLine = new Polyline(
     "1",
@@ -167,11 +169,12 @@ class _MapPageState extends State<MapPage> {
   //Timer to determine how frequently the stopwatch gui updates
   Timer timer;
 
-
+  final String signInPref = "signInPref";
   final String speedPref = "speedPref";
   final String distPref = "distPref";
   final String darkPref = "darkPref";
   final String debugPref = "debugPref";
+
   // Initilize cameraPosition which displays the location on google maps
   CameraPosition cameraPosition;
 
@@ -194,18 +197,24 @@ class _MapPageState extends State<MapPage> {
   double dist = 0.0;
 
   Future<FirebaseUser> _handleSignIn() async {
-    GoogleSignInAccount googleUser = await _googleSignIn.signIn();
-    GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    FirebaseUser user = await _auth.signInWithGoogle(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    print("signed in " + user.displayName);
-    uID = user.uid;
-    //@patton
-    //loginSync(uID);
-    print("uID: " + uID);
-    return user;
+
+    try {
+      GoogleSignInAccount googleUser = await _googleSignIn.signIn();
+      GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      FirebaseUser user = await _auth.signInWithGoogle(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      print("signed in " + user.displayName);
+      uID = user.uid;
+      //@patton
+      //loginSync(uID);
+      print("uID: " + uID);
+      return user;
+    } catch (e){
+      print(e);
+      return null;
+    }
   }
 
   bool isRiding = false;
@@ -655,7 +664,7 @@ class _MapPageState extends State<MapPage> {
     // TODO: implement initState?
     super.initState();
 
-    //get the users settings
+    //get the users settings, do init stuff that depends on settings
     getSettings().then((result){
       setState(() {
         toggleSettings(result);
@@ -672,6 +681,17 @@ class _MapPageState extends State<MapPage> {
         LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
         SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
       ];
+
+//      if(settings.signInValue != null) {
+//        constants.add(Constants.Settings);
+//        constants.add(Constants.SignOut);
+//      } else {
+//        constants.add(Constants.Settings);
+//        constants.add(Constants.SignIn);
+//      }
+
+      //Handle whether a user is signed in or not
+      print("Constants_______ " + constants.toString());
 
 
     });
@@ -711,7 +731,7 @@ class _MapPageState extends State<MapPage> {
 
   Future<Settings> getSettings() async {
 
-    settings = new Settings(await getSpeedPref(), await getDistPref(), await getDarkPref(), await getDebugPref());
+    settings = new Settings(await getSignInPref(), await getSpeedPref(), await getDistPref(), await getDarkPref(), await getDebugPref());
 
     return settings;
   }
@@ -1126,6 +1146,18 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
+  Future<String> getSignInPref() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.getString(signInPref) ?? null;
+  }
+
+  Future<bool> setSignInPref(String value) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.setString(signInPref, value);
+  }
+
   //gets the speed preference
   Future<bool> getSpeedPref() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -1185,6 +1217,7 @@ class _MapPageState extends State<MapPage> {
   void settingsCallback(){
 
     //Saves the settings using shared preferences
+    setSignInPref(settings.signInValue);
     setSpeedPref(settings.isMetricSpeed);
     setDistPref(settings.isMetricDist);
     setDarkPref(settings.isDarkTheme);
@@ -1277,6 +1310,22 @@ class _MapPageState extends State<MapPage> {
     setState(() {
       isMeters = set.isMetricDist;
     });
+
+    //change ellipses menu options
+    if(settings.signInValue != null) {
+      constants = [];
+      constants.add(Constants.Settings);
+      constants.add(Constants.SignOut);
+    } else {
+      constants = [];
+      constants.add(Constants.Settings);
+      constants.add(Constants.SignIn);
+    }
+
+    //set new constants
+    setState(() {
+      constants = constants;
+    });
   }
 
 
@@ -1318,7 +1367,7 @@ class _MapPageState extends State<MapPage> {
           PopupMenuButton<String>(
             onSelected: choiceAction,
             itemBuilder: (BuildContext context){
-              return Constants.choices.map((String choice){
+              return constants.map((String choice){
                 return PopupMenuItem<String>(
                   value: choice,
                   child: Text(choice),
@@ -1474,10 +1523,19 @@ class _MapPageState extends State<MapPage> {
   }
 
 
-  void choiceAction(String choice) {
+  void choiceAction(String choice) async {
     if (choice == Constants.Settings){
       Navigator.push(context, MaterialPageRoute(builder:
           (context) => SettingsMenu(settings: settings, darkTheme: settings.isDarkTheme, callback: () => settingsCallback())));
+    } else if (choice == Constants.SignIn) {
+      FirebaseUser user = await _handleSignIn();
+      if (user != null) {
+        setSignInPref(user.displayName);
+      } else {
+        print ("sign in failed");
+      }
+    } else if (choice == Constants.SignOut) {
+      _handleSignOut();
     }
   }
 
