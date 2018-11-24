@@ -211,14 +211,29 @@ class _MapPageState extends State<MapPage> {
       );
       print("signed in " + user.displayName);
       uID = user.uid;
-
-      print("uID: " + uID);
-      print("user ID: " + user.uid);
       loginSync(uID);
       return user;
     } catch (e){
       print(e);
       return null;
+    }
+  }
+
+  Future _silentSignIn() async {
+
+    try {
+      GoogleSignInAccount googleUser = await _googleSignIn.signInSilently();
+      GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      FirebaseUser user = await _auth.signInWithGoogle(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      print("signed in on app launch " + user.displayName);
+      uID = user.uid;
+      loginSync(uID);
+      fbUser = user;
+    } catch (e){
+      print(e);
     }
   }
 
@@ -242,7 +257,6 @@ class _MapPageState extends State<MapPage> {
 
   //@Sam this method is to save ther user
   sendDataUser(dynamic temp,String trailID){
-    print("temp: " + temp.toString());
     DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uID).child(trailID);
     print("Attempting to send to database...");
     database.set(temp);
@@ -251,7 +265,6 @@ class _MapPageState extends State<MapPage> {
   getData(){
     var ref =  FirebaseDatabase.instance.reference().child("Trails").child("Public");
     ref.onChildAdded.listen((event) {
-
       handler(event);
     });
   }
@@ -270,28 +283,24 @@ class _MapPageState extends State<MapPage> {
     List<String> dbTrails = [];
     var ref =  FirebaseDatabase.instance.reference().child("Trails").child(uName);
     //first get trails from the db
-    print("a");
     ref.onChildAdded.listen((event) {
       dbTrails.add(event.snapshot.value["fileName"]);
-      print("fileName: " + event.snapshot.value["fileName"].toString());
       var found = false;
       //check if they exist locally
-      trails.forEach((trail){
+      for(var trail in trails){
         if(event.snapshot.value["fileName"] == trail.id){
           found = true;
-          print("ab");
         }
-      });
-
+      }
       //if they dont then add them
       if(!found){
         userHandler(event);
+        print("saved");
       }
-      print("b");
       });
 
     trails.forEach((trail){
-      Map<String, dynamic> tInfo = trail.points[0].toMap();
+      Map<String, dynamic> tInfo = trail.polyline.toMap();
       tInfo["avgSpeed"] = trail.avgSpeed;
       tInfo["distance"] = trail.length;
       tInfo["name"] = trail.name;
@@ -675,7 +684,9 @@ class _MapPageState extends State<MapPage> {
     // TODO: implement initState?
       super.initState();
 
-      _googleSignIn.signOut();
+      //_googleSignIn.signOut();
+
+      _silentSignIn();
 
       //get the users settings, do init stuff that depends on settings
       getSettings().then((result){
@@ -1330,7 +1341,7 @@ class _MapPageState extends State<MapPage> {
       isMeters = set.isMetricDist;
     });
 
-    settings.signInValue = null;
+
     //change ellipses menu options
     if(settings.signInValue != null) {
       constants = [];
@@ -1557,6 +1568,7 @@ class _MapPageState extends State<MapPage> {
       }
     } else if (choice == Constants.SignOut) {
       _handleSignOut();
+
     }
   }
 
