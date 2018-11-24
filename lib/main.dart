@@ -290,26 +290,17 @@ class _MapPageState extends State<MapPage> {
       print("b");
       });
 
-
-  }
-
-  //@Patton
-  _notSynced(List<String> dbTrails){
     trails.forEach((trail){
-      print("dbTrails lenght: " + dbTrails.length.toString());
-      var found = false;
-      dbTrails.forEach((id){
-        if(id == trail.id){
-          found = true;
-        }
-      });
-      if(!found) {
-        print(trail);
-        sendDataUser(trail, trail.id);
-      }
-      print("c");
+      Map<String, dynamic> tInfo = trail.points[0].toMap();
+      tInfo["avgSpeed"] = trail.avgSpeed;
+      tInfo["distance"] = trail.length;
+      tInfo["name"] = trail.name;
+      tInfo["time"] = trail.time;
+      tInfo["fileName"] = trail.id;
+      sendDataUser(tInfo, trail.id);
     });
   }
+
 
   //@sam @braedin
   //this needs to be added where they delete their trails so it removes it from db also
@@ -684,6 +675,7 @@ class _MapPageState extends State<MapPage> {
     // TODO: implement initState?
       super.initState();
 
+      _googleSignIn.signOut();
 
       //get the users settings, do init stuff that depends on settings
       getSettings().then((result){
@@ -855,7 +847,10 @@ class _MapPageState extends State<MapPage> {
         this.setState(() =>
         trailContent = json.decode(trailsJsonFile.readAsStringSync()));
         print("saved: $fileName");
-        sendDataUser(tInfo, fileName);
+        //only try to back up if logged in
+        if(fbUser != null) {
+          sendDataUser(tInfo, fileName);
+        }
       }
 
 
