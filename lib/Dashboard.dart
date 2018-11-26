@@ -312,7 +312,7 @@ class DashboardState extends State<Dashboard> {
     polyLines = [];
 
     if(isRecording) {
-      toggleRecording(false);
+      toggleRecording(true);
     }
 
     widget.callback(null, null, "-1", null, null, null);
@@ -332,6 +332,8 @@ class DashboardState extends State<Dashboard> {
       setState(() => isRecording = !isRecording);
     }
 
+    print("__________ $isRecording _________________");
+
     //starts stream if isRecording is true
     if (isRecording){
       //Reset and start stopwatch
@@ -342,7 +344,7 @@ class DashboardState extends State<Dashboard> {
 
       getPositionStream(isRiding);
 
-      widget.callback(null, null, null, null, null, null);
+      widget.callback(null, null, "rec", null, null, null);
 
     } else {
 
@@ -361,8 +363,12 @@ class DashboardState extends State<Dashboard> {
         });
       }
 
-      if(widget.rideTrail != null) {
+      if(widget.rideTrail != null && !isRiding) {
         stopRide(widget.rideTrail.id, polyLines, timeVal, aveSpeed, distanceTraveledVal, null);
+        Scaffold.of(context).showSnackBar(SnackBar(content: Text(widget.rideTrail.name + " updated, clear dashboard")));
+
+      } else if (widget.rideTrail != null && isRiding) {
+        stopRide(null, null, "-1", null, null, null);
       }
 
     }
@@ -476,7 +482,7 @@ class DashboardState extends State<Dashboard> {
   }
 
   void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic) {
-
+    clearDashboard();
     widget.callback(trailName, lines, time, avgSpeed, distance, isPublic);
   }
 

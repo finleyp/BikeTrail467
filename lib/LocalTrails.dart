@@ -95,6 +95,7 @@ class LocalTrailsState extends State<LocalTrails> with AfterLayoutMixin<LocalTra
                 savedTrails: widget.savedTrails,
                 theme: widget.theme,
                 viewTrail: widget.viewTrail,
+                viewThisTrail: viewThisTrail,
                 callback: widget.callback
             );
           },
@@ -108,6 +109,7 @@ class ListTileItem extends StatefulWidget {
   final List<Trail> savedTrails;
   final ThemeData theme;
   final String viewTrail;
+  final bool viewThisTrail;
   final StringCallback callback;
 
   ListTileItem({
@@ -116,6 +118,7 @@ class ListTileItem extends StatefulWidget {
     @required this.savedTrails,
     @required this.theme,
     @required this.viewTrail,
+    @required this.viewThisTrail,
     @required this.callback}) : super(key: key);
 
 
@@ -128,7 +131,6 @@ class ListTileItem extends StatefulWidget {
 
 class ListTimeItemState extends State<ListTileItem> {
 
-  bool viewThisTrail = false;
   Icon favoriteIcon;
   Icon favorite = Icon(Icons.favorite, color: Colors.red);
   Icon notFavorite = Icon(Icons.favorite_border);
@@ -219,14 +221,14 @@ class ListTimeItemState extends State<ListTileItem> {
             ),
             new InkWell(
               child: new FadeInImage.assetNetwork(
-                placeholder: widget.theme == ThemeData.light() ? "lib/assets/staticmap.png": "lib/assets/staticmapdark.png",
+                placeholder: widget.theme.primaryColor == Colors.grey[900] ? "lib/assets/staticmapdark.png": "lib/assets/staticmap.png",
                 image: widget.trail.uri.toString(),
               ),
               onTap: () => showOnMap(widget.trail),
             ),
             new ExpansionTile(
               title: Text("Stats"),
-              initiallyExpanded: viewThisTrail ? widget.viewTrail == widget.trail.id ? true : false: false,
+              initiallyExpanded: widget.viewThisTrail ? widget.viewTrail == widget.trail.id ? true : false: false,
               children: <Widget>[
                 new SimpleLineChart(seriesList: (createData(widget.trail.points)), trail: widget.trail),
               ],

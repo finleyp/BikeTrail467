@@ -332,6 +332,37 @@ class _MapPageState extends State<MapPage> {
     time = data["time"];
     distance = data["distance"];
     Polyline line = buildFromdb(jointType, color, width, id, points);
+
+    /////////////////////////////////////////////////////////////////////////////////
+
+    Polyline lineTemp = new Polyline(fileName,
+        line.points,
+        width: 15.0,
+        color: Colors.green,
+        jointType: FigureJointType.round);
+
+    loadLines.add(lineTemp);
+
+
+    String titleString = isMeters ? "$name | " + convertDist(distance).toStringAsFixed(2) + " km" : "$name | " + convertDist(distance).toStringAsFixed(2) + " mi";
+
+
+    Marker marker = new Marker(
+      fileName,
+      titleString,
+      line.points[0].latitude,
+      line.points[0].longitude,
+      color: Colors.green,
+      markerIcon: new MarkerIcon(
+        "lib/assets/bike-icon.png",
+        height: 75.0,
+        width: 75.0,
+      ),
+    );
+
+    loadMarkers.add(marker);
+
+
     generateTrails(fileName, name, line.points,
         line, "this is a test", time, avgSpeed.toDouble(), distance.toDouble(), false);
   }
@@ -410,6 +441,13 @@ class _MapPageState extends State<MapPage> {
       });
     }
 
+    //Follow user if recording or riding
+    mapView.onLocationUpdated.listen((location) {
+      if (isRiding || isRecording) {
+        mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), 24.0));
+      }
+    });
+
     //Listener for marker taps
     mapView.onTouchAnnotation.listen((annotation) {
 
@@ -425,13 +463,23 @@ class _MapPageState extends State<MapPage> {
 
       mapView.dismiss();
 
-      //Navigate to saved trails list at certain trail
-      //TODO: decide to go to savedTrails or localTrails
+      //Navigate to saved trails list or local trails list at certain trail
 
-      setState(() {
-        _onItemTapped(3, trailID: marker.id);
-      });
+      for(var trail in trails) {
+        if (marker.id == trail.id){
+          setState(() {
+            _onItemTapped(3, trailID: marker.id);
+          });
+        }
+      }
 
+      for (var trail in localTrails) {
+        if (marker.id == trail.id){
+          setState(() {
+            _onItemTapped(2, trailID: marker.id);
+          });
+        }
+      }
 
 //      Navigator.push(context, MaterialPageRoute(builder:
 //          (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: marker.id, callback: (str, trail) => savedTrailsOption(str, trail))));
@@ -650,10 +698,12 @@ class _MapPageState extends State<MapPage> {
     dist += distanceInKm;
   }
 
-  void rideTrail(Trail trail) {
+  void rideTrail(Trail trail) async{
 
     isRiding = true;
     ridingTrail = trail;
+    isRecording = true;
+
 
     _children = [
       Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, rideTrail: trail, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
@@ -1255,18 +1305,11 @@ class _MapPageState extends State<MapPage> {
     //Clears the saved trails and rebuilds them
     //this ensures that the static map has the correct style
     trails.clear();
+    localTrails.clear();
     loadMarkers.clear();
     buildFromJson();
+    getData();
     toggleSettings(settings);
-
-    //TODO figure out a better way to accomplish the settings callback rendering for the children
-    _children = [
-      Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
-      null,
-      LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
-      SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
-    ];
-
   }
 
   void savedTrailsOption(String choice, Trail trail) {
@@ -1308,20 +1351,24 @@ class _MapPageState extends State<MapPage> {
     if(isPublic != null) {
       saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, false);
       isRecording = false;
-    } else if (isPublic == null && trailName != null && time == null){
+    } else if (isPublic == null && trailName != null){
       saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, true, file: trailName);
       isRiding = false;
     } else if (time == "-1") {
       //Callback for clear
       isRecording = false;
-    }else{
+      isRiding = false;
+      setState(() {});
+
+    }else if (time == "rec" && !isRiding){
       //Callback to control state of bottom navigation bar
-      isRecording = true;
+//      isRecording = true;
+
+      //TODO why does this break the app when the user goes to ride?
+      setState(() {
+        isRecording = true;
+      });
     }
-
-    setState(() {
-
-    });
 
   }
 
@@ -1366,6 +1413,14 @@ class _MapPageState extends State<MapPage> {
     //set new constants
     setState(() {
       constants = constantsTemp;
+
+      //TODO figure out a better way to accomplish the settings callback rendering for the children
+      _children = [
+        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+        null,
+        LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+      ];
     });
   }
 
@@ -1495,7 +1550,7 @@ class _MapPageState extends State<MapPage> {
         _children = [
           Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
           null,
-          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: trailID, callback: (str, trail)=> localTrailCallback(str, trail)),
           SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: trailID, callback: (str, trail)=> savedTrailsOption(str, trail))
         ];
       }
@@ -1515,52 +1570,6 @@ class _MapPageState extends State<MapPage> {
 
 
   }
-
-  //Have user enter trail information
-  _showDialog() async {
-    await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return new AlertDialog(
-          contentPadding: const EdgeInsets.all(16.0),
-          content: new Row(
-            children: <Widget>[
-              new Expanded(
-                child: new TextField(
-                  autofocus: true,
-                  controller: trailNameController,
-                  decoration: new InputDecoration(
-                      labelText: 'Trail Information', hintText: 'Trail Name', contentPadding: const EdgeInsets.only(top: 16.0)),
-                ),
-              )
-            ],
-          ),
-          actions: <Widget>[
-            new Text("Make Public"),
-            new Checkbox(
-                value: false,
-                onChanged: null
-            ),
-            new FlatButton(
-                child: const Text('Cancel'),
-                onPressed: () {
-                  Navigator.pop(context);
-                }),
-            new FlatButton(
-                child: const Text('Save'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  print(trailNameController.text);
-                 // saveTrail(trailNameController.text, polyLines, timeVal, aveSpeed, distanceTraveledVal);
-                  trailNameController.text = "";
-                })
-          ],
-        );
-      },
-    );
-  }
-
 
   void choiceAction(String choice) async {
     if (choice == Constants.Settings){
