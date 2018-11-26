@@ -308,6 +308,9 @@ class DashboardState extends State<Dashboard> {
       timer = new Timer.periodic(new Duration(milliseconds: 30), setStopWatchGui);
 
       getPositionStream(isRiding);
+
+      widget.callback(null, null, null, null, null, null);
+
     } else {
 
       //Stop the stopwatch
@@ -407,7 +410,7 @@ class DashboardState extends State<Dashboard> {
               latVal = loc.latitude;
               longVal = loc.longitude;
               altVal = altitude;
-              distanceTraveledVal = distance;
+              distanceTraveledVal += distance;
 
               if (isRiding) {
                 distanceLeftVal = calculateDistanceLeft(loc);
@@ -738,6 +741,10 @@ class DashboardState extends State<Dashboard> {
                 new Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: <Widget>[
+                    new RaisedButton(
+                        child: Text("Clear"),
+                        elevation: 2.0,
+                        onPressed: () => print("pressed")),
                     new RaisedButton(
                         child: isRecording ? Text("Stop Recording") : Text(
                             "Start Recording"),

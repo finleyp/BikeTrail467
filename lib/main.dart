@@ -67,12 +67,12 @@ final ThemeData darkTheme = new ThemeData(
   buttonColor: Colors.grey,
   splashColor: Colors.teal,
   hintColor: Colors.grey,
-  disabledColor: Colors.grey[600]
+  disabledColor: Colors.grey[700]
 );
 final ThemeData lightTheme = new ThemeData(
   brightness: Brightness.light,
   hintColor: Colors.grey,
-  disabledColor: Colors.grey[600]
+  disabledColor: Colors.grey[200]
 );
 
 
@@ -391,7 +391,7 @@ class _MapPageState extends State<MapPage> {
         new CameraPosition(Locations.centerOfUSA, 0.0),
 
         showUserLocation: true,
-        title: "This is a title"));
+        title: "Bike Trail"));
 
 
     if (location == null) {
@@ -706,13 +706,6 @@ class _MapPageState extends State<MapPage> {
           SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
         ];
 
-  //      if(settings.signInValue != null) {
-  //        constants.add(Constants.Settings);
-  //        constants.add(Constants.SignOut);
-  //      } else {
-  //        constants.add(Constants.Settings);
-  //        constants.add(Constants.SignIn);
-  //      }
 
         //Handle whether a user is signed in or not
         print("Constants_______ " + constants.toString());
@@ -1308,10 +1301,19 @@ class _MapPageState extends State<MapPage> {
 
     if(isPublic != null) {
       saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, false);
-    } else {
+      isRecording = false;
+    } else if (isPublic == null && trailName != null){
       saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, true, file: trailName);
       isRiding = false;
+    } else {
+      //Callback to control state of bottom navigation bar
+      isRecording = true;
     }
+
+    setState(() {
+
+    });
+
   }
 
   void toggleSettings(Settings set) {
@@ -1341,21 +1343,20 @@ class _MapPageState extends State<MapPage> {
       isMeters = set.isMetricDist;
     });
 
+    List<String> constantsTemp = new List();
 
     //change ellipses menu options
     if(settings.signInValue != null) {
-      constants = [];
-      constants.add(Constants.Settings);
-      constants.add(Constants.SignOut);
+      constantsTemp.add(Constants.Settings);
+      constantsTemp.add(Constants.SignOut);
     } else {
-      constants = [];
-      constants.add(Constants.Settings);
-      constants.add(Constants.SignIn);
+      constantsTemp.add(Constants.Settings);
+      constantsTemp.add(Constants.SignIn);
     }
 
     //set new constants
     setState(() {
-      constants = constants;
+      constants = constantsTemp;
     });
   }
 
@@ -1415,24 +1416,24 @@ class _MapPageState extends State<MapPage> {
           fixedColor: Colors.black,
           items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-                icon: new Icon(Icons.home, /*color: iconColor*/),
+                icon: new Icon(Icons.directions_bike, color: iconColor),
                 title: new Text(""),
-                activeIcon: new Icon(Icons.home, /*color: Colors.black*/)
+                activeIcon: new Icon(Icons.directions_bike, color: Colors.black)
             ),
             BottomNavigationBarItem(
-              icon: new Icon(Icons.map, /*color: iconColor*/),
+              icon: new Icon(Icons.map, color: iconColor),
               title: new Text(""),
-                activeIcon: new Icon(Icons.map, /*color: Colors.black*/)
+                activeIcon: new Icon(Icons.map, color: Colors.black)
             ),
             BottomNavigationBarItem(
-                icon: new Icon(Icons.playlist_add_check, /*color: disabledIconColor*/),
+                icon: new Icon(Icons.public, color: isRecording ? disabledIconColor : iconColor),
                 title: new Text(""),
-                activeIcon: new Icon(Icons.playlist_add_check, /*color: Colors.black*/)
+                activeIcon: new Icon(Icons.public, color: Colors.black)
             ),
             BottomNavigationBarItem(
-                icon: new Icon(Icons.playlist_add_check, /*color: disabledIconColor*/),
+                icon: new Icon(Icons.favorite, color: isRecording ? disabledIconColor : iconColor),
                 title: new Text(""),
-                activeIcon: new Icon(Icons.playlist_add_check, /*color: Colors.black*/)
+                activeIcon: new Icon(Icons.favorite, color: Colors.black)
             )
             ],
           onTap: _onItemTapped,
@@ -1461,8 +1462,6 @@ class _MapPageState extends State<MapPage> {
         ];
       }
 
-
-
       setState(() {
         if (index == 1 && !isRiding) {
           showMap(null, null, 12.0);
@@ -1470,7 +1469,7 @@ class _MapPageState extends State<MapPage> {
         } else if (index == 1 && isRiding) {
           showMap(ridingTrail.points, ridingTrail.points[0], 14.0);
           _currentIndex = 0;
-        } else {
+        } else if (!isRecording){
           _currentIndex = index;
         }
       });
@@ -1499,7 +1498,7 @@ class _MapPageState extends State<MapPage> {
         } else if (index == 1 && isRiding) {
           showMap(ridingTrail.points, ridingTrail.points[0], 14.0);
           _currentIndex = 0;
-        } else {
+        } else if (!isRecording) {
           _currentIndex = index;
         }
       });
@@ -1562,11 +1561,16 @@ class _MapPageState extends State<MapPage> {
       FirebaseUser user = await _handleSignIn();
       if (user != null) {
         setSignInPref(user.displayName);
+        settings.signInValue = user.displayName;
+        toggleSettings(settings);
         fbUser = user;
       } else {
         print ("sign in failed");
       }
     } else if (choice == Constants.SignOut) {
+      setSignInPref(null);
+      settings.signInValue = null;
+      toggleSettings(settings);
       _handleSignOut();
 
     }
