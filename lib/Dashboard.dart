@@ -286,6 +286,39 @@ class DashboardState extends State<Dashboard> {
 
   }
 
+  void clearDashboard() {
+    setState(() {
+      timeVal = "00:00:00:00";
+      speedVal = 0.0;
+      aveSpeedVal = 0.0;
+      countVal = 0;
+      latVal = 0.0;
+      longVal = 0.0;
+      altVal = 0.0;
+      distanceTraveledVal = 0.0;
+      distanceLeftVal = 0.0;
+    });
+
+    dist = 0.0;
+    countVal = 0;
+    count = 0;
+    newLine = new Polyline(
+        "1",
+        <Location>[
+        ],
+        width: 15.0,
+        color: Colors.blue,
+        jointType: FigureJointType.round);
+    polyLines = [];
+
+    if(isRecording) {
+      toggleRecording(false);
+    }
+
+    widget.callback(null, null, "-1", null, null, null);
+
+  }
+
   void toggleRecording(bool isRiding) {
 
     //Get correct units
@@ -744,7 +777,7 @@ class DashboardState extends State<Dashboard> {
                     new RaisedButton(
                         child: Text("Clear"),
                         elevation: 2.0,
-                        onPressed: () => print("pressed")),
+                        onPressed: () => clearDashboard()),
                     new RaisedButton(
                         child: isRecording ? Text("Stop Recording") : Text(
                             "Start Recording"),

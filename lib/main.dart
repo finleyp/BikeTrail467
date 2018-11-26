@@ -1167,6 +1167,12 @@ class _MapPageState extends State<MapPage> {
         }
       });
     });
+
+    if (uID != null) {
+      //delete trail from db
+      deleteDataUser(uID, file);
+    }
+
   }
 
   Future<String> getSignInPref() async {
@@ -1302,10 +1308,13 @@ class _MapPageState extends State<MapPage> {
     if(isPublic != null) {
       saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, false);
       isRecording = false;
-    } else if (isPublic == null && trailName != null){
+    } else if (isPublic == null && trailName != null && time == null){
       saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, true, file: trailName);
       isRiding = false;
-    } else {
+    } else if (time == "-1") {
+      //Callback for clear
+      isRecording = false;
+    }else{
       //Callback to control state of bottom navigation bar
       isRecording = true;
     }
