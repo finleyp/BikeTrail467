@@ -1,10 +1,15 @@
 class Settings {
+   String signInValue;
    bool isMetricSpeed;
    bool isMetricDist;
    bool isDarkTheme;
    bool showDebug;
 
-  Settings(this.isMetricSpeed, this.isMetricDist, this.isDarkTheme, this.showDebug);
+  Settings(this.signInValue, this.isMetricSpeed, this.isMetricDist, this.isDarkTheme, this.showDebug);
+
+  set setSignInValue(String value) {
+    signInValue = value;
+  }
 
   set setMetricSpeed(bool value) {
     isMetricSpeed = value;

@@ -46,7 +46,9 @@ List<Widget> _children = [
       PlaceholderWidget(Colors.black)
     ];
 
+//phone saved
 List<Trail> trails = new List();
+//db saved
 List<Trail> localTrails = new List();
 
 Location onLoadLoc;
@@ -65,12 +67,12 @@ final ThemeData darkTheme = new ThemeData(
   buttonColor: Colors.grey,
   splashColor: Colors.teal,
   hintColor: Colors.grey,
-  disabledColor: Colors.grey[600]
+  disabledColor: Colors.grey[700]
 );
 final ThemeData lightTheme = new ThemeData(
   brightness: Brightness.light,
   hintColor: Colors.grey,
-  disabledColor: Colors.grey[600]
+  disabledColor: Colors.grey[200]
 );
 
 
@@ -108,6 +110,8 @@ bool isMeters = false;
 final GoogleSignIn _googleSignIn = GoogleSignIn();
 final FirebaseAuth _auth = FirebaseAuth.instance;
 String uID = "";
+
+List<String> constants = new List();
 
 
 Polyline newLine = new Polyline(
@@ -167,11 +171,12 @@ class _MapPageState extends State<MapPage> {
   //Timer to determine how frequently the stopwatch gui updates
   Timer timer;
 
-
+  final String signInPref = "signInPref";
   final String speedPref = "speedPref";
   final String distPref = "distPref";
   final String darkPref = "darkPref";
   final String debugPref = "debugPref";
+
   // Initilize cameraPosition which displays the location on google maps
   CameraPosition cameraPosition;
 
@@ -192,20 +197,44 @@ class _MapPageState extends State<MapPage> {
   Map<String, dynamic> trailContent;
 
   double dist = 0.0;
-
+  FirebaseUser fbUser;
   Future<FirebaseUser> _handleSignIn() async {
-    GoogleSignInAccount googleUser = await _googleSignIn.signIn();
-    GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    FirebaseUser user = await _auth.signInWithGoogle(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    print("signed in " + user.displayName);
-    uID = user.uid;
-    //@patton
-    //loginSync(uID);
-    print("uID: " + uID);
-    return user;
+
+    try {
+      GoogleSignInAccount googleUser = await _googleSignIn.signIn();
+      GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      print("access token" + googleAuth.accessToken);
+      print("idToken " + googleAuth.idToken);
+      FirebaseUser user = await _auth.signInWithGoogle(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      print("signed in " + user.displayName);
+      uID = user.uid;
+      loginSync(uID);
+      return user;
+    } catch (e){
+      print(e);
+      return null;
+    }
+  }
+
+  Future _silentSignIn() async {
+
+    try {
+      GoogleSignInAccount googleUser = await _googleSignIn.signInSilently();
+      GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      FirebaseUser user = await _auth.signInWithGoogle(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      print("signed in on app launch " + user.displayName);
+      uID = user.uid;
+      loginSync(uID);
+      fbUser = user;
+    } catch (e){
+      print(e);
+    }
   }
 
   bool isRiding = false;
@@ -227,8 +256,8 @@ class _MapPageState extends State<MapPage> {
 
 
   //@Sam this method is to save ther user
-  sendDataUser(dynamic temp, String uName,String trailID){
-    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uName).child(trailID);
+  sendDataUser(dynamic temp,String trailID){
+    DatabaseReference database = FirebaseDatabase.instance.reference().child("Trails").child(uID).child(trailID);
     print("Attempting to send to database...");
     database.set(temp);
   }
@@ -236,7 +265,6 @@ class _MapPageState extends State<MapPage> {
   getData(){
     var ref =  FirebaseDatabase.instance.reference().child("Trails").child("Public");
     ref.onChildAdded.listen((event) {
-
       handler(event);
     });
   }
@@ -250,37 +278,38 @@ class _MapPageState extends State<MapPage> {
   }
 
   //@patton
-  loginSync(String uName){
+  Future loginSync(String uName) async{
+    print("uname " + uName);
     List<String> dbTrails = [];
     var ref =  FirebaseDatabase.instance.reference().child("Trails").child(uName);
     //first get trails from the db
     ref.onChildAdded.listen((event) {
-      dbTrails.add(event.snapshot.value[fileName]);
+      dbTrails.add(event.snapshot.value["fileName"]);
       var found = false;
       //check if they exist locally
-      localTrails.forEach((trail){
-        if(event.snapshot.value[fileName] == trail.id){
+      for(var trail in trails){
+        if(event.snapshot.value["fileName"] == trail.id){
           found = true;
         }
-      });
+      }
       //if they dont then add them
       if(!found){
         userHandler(event);
+        print("saved");
       }
-    });
-    //next check if the trails are on the db
-    //afraid this wont work
-    localTrails.forEach((trail){
-      var found = false;
-      dbTrails.forEach((id){
-        if(id == trail.id){
-          found = true;
-        }
       });
-      if(!found)
-        sendDataUser(trail, uID, trail.id);
+
+    trails.forEach((trail){
+      Map<String, dynamic> tInfo = trail.polyline.toMap();
+      tInfo["avgSpeed"] = trail.avgSpeed;
+      tInfo["distance"] = trail.length;
+      tInfo["name"] = trail.name;
+      tInfo["time"] = trail.time;
+      tInfo["fileName"] = trail.id;
+      sendDataUser(tInfo, trail.id);
     });
   }
+
 
   //@sam @braedin
   //this needs to be added where they delete their trails so it removes it from db also
@@ -303,6 +332,37 @@ class _MapPageState extends State<MapPage> {
     time = data["time"];
     distance = data["distance"];
     Polyline line = buildFromdb(jointType, color, width, id, points);
+
+    /////////////////////////////////////////////////////////////////////////////////
+
+    Polyline lineTemp = new Polyline(fileName,
+        line.points,
+        width: 15.0,
+        color: Colors.green,
+        jointType: FigureJointType.round);
+
+    loadLines.add(lineTemp);
+
+
+    String titleString = isMeters ? "$name | " + convertDist(distance).toStringAsFixed(2) + " km" : "$name | " + convertDist(distance).toStringAsFixed(2) + " mi";
+
+
+    Marker marker = new Marker(
+      fileName,
+      titleString,
+      line.points[0].latitude,
+      line.points[0].longitude,
+      color: Colors.green,
+      markerIcon: new MarkerIcon(
+        "lib/assets/bike-icon.png",
+        height: 75.0,
+        width: 75.0,
+      ),
+    );
+
+    loadMarkers.add(marker);
+
+
     generateTrails(fileName, name, line.points,
         line, "this is a test", time, avgSpeed.toDouble(), distance.toDouble(), false);
   }
@@ -362,7 +422,7 @@ class _MapPageState extends State<MapPage> {
         new CameraPosition(Locations.centerOfUSA, 0.0),
 
         showUserLocation: true,
-        title: "This is a title"));
+        title: "Bike Trail"));
 
 
     if (location == null) {
@@ -381,6 +441,13 @@ class _MapPageState extends State<MapPage> {
       });
     }
 
+    //Follow user if recording or riding
+    mapView.onLocationUpdated.listen((location) {
+      if (isRiding || isRecording) {
+        mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), 24.0));
+      }
+    });
+
     //Listener for marker taps
     mapView.onTouchAnnotation.listen((annotation) {
 
@@ -396,13 +463,23 @@ class _MapPageState extends State<MapPage> {
 
       mapView.dismiss();
 
-      //Navigate to saved trails list at certain trail
-      //TODO: decide to go to savedTrails or localTrails
+      //Navigate to saved trails list or local trails list at certain trail
 
-      setState(() {
-        _onItemTapped(3, trailID: marker.id);
-      });
+      for(var trail in trails) {
+        if (marker.id == trail.id){
+          setState(() {
+            _onItemTapped(3, trailID: marker.id);
+          });
+        }
+      }
 
+      for (var trail in localTrails) {
+        if (marker.id == trail.id){
+          setState(() {
+            _onItemTapped(2, trailID: marker.id);
+          });
+        }
+      }
 
 //      Navigator.push(context, MaterialPageRoute(builder:
 //          (context) => SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: marker.id, callback: (str, trail) => savedTrailsOption(str, trail))));
@@ -621,10 +698,12 @@ class _MapPageState extends State<MapPage> {
     dist += distanceInKm;
   }
 
-  void rideTrail(Trail trail) {
+  void rideTrail(Trail trail) async{
 
     isRiding = true;
     ridingTrail = trail;
+    isRecording = true;
+
 
     _children = [
       Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, rideTrail: trail, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
@@ -653,34 +732,42 @@ class _MapPageState extends State<MapPage> {
   //size we want it for the app lay out
   void initState() {
     // TODO: implement initState?
-    super.initState();
+      super.initState();
 
-    //get the users settings
-    getSettings().then((result){
-      setState(() {
-        toggleSettings(result);
+      //_googleSignIn.signOut();
+
+      _silentSignIn();
+
+      //get the users settings, do init stuff that depends on settings
+      getSettings().then((result){
+        setState(() {
+          toggleSettings(result);
+        });
+        //Get saved trails
+        buildFromJson();
+
+        iconColor = theme.hintColor;
+        disabledIconColor = theme.disabledColor;
+
+        _children = [
+          Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+          null,
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+        ];
+
+
+        //Handle whether a user is signed in or not
+        print("Constants_______ " + constants.toString());
+
+
       });
-      //Get saved trails
-      buildFromJson();
+      //get th users current location
+      getCurrentLocation();
 
-      iconColor = theme.hintColor;
-      disabledIconColor = theme.disabledColor;
-
-      _children = [
-        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
-        null,
-        LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
-        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
-      ];
-
-
-    });
-    //get th users current location
-    getCurrentLocation();
-
-    getData();
-    //Make Stopwatch -- stopped with zero elapsed time
-    stopWatch = new Stopwatch();
+      getData();
+      //Make Stopwatch -- stopped with zero elapsed time
+      stopWatch = new Stopwatch();
 
       //_children = new List();
 //      _children.add(LocalTrails(trails: localTrails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail)));
@@ -711,7 +798,7 @@ class _MapPageState extends State<MapPage> {
 
   Future<Settings> getSettings() async {
 
-    settings = new Settings(await getSpeedPref(), await getDistPref(), await getDarkPref(), await getDebugPref());
+    settings = new Settings(await getSignInPref(), await getSpeedPref(), await getDistPref(), await getDarkPref(), await getDebugPref());
 
     return settings;
   }
@@ -809,9 +896,15 @@ class _MapPageState extends State<MapPage> {
           sendData(tInfo, fileName);
         }
 
+
+
         this.setState(() =>
         trailContent = json.decode(trailsJsonFile.readAsStringSync()));
         print("saved: $fileName");
+        //only try to back up if logged in
+        if(fbUser != null) {
+          sendDataUser(tInfo, fileName);
+        }
       }
 
 
@@ -1124,6 +1217,24 @@ class _MapPageState extends State<MapPage> {
         }
       });
     });
+
+    if (uID != null) {
+      //delete trail from db
+      deleteDataUser(uID, file);
+    }
+
+  }
+
+  Future<String> getSignInPref() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.getString(signInPref) ?? null;
+  }
+
+  Future<bool> setSignInPref(String value) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return prefs.setString(signInPref, value);
   }
 
   //gets the speed preference
@@ -1185,6 +1296,7 @@ class _MapPageState extends State<MapPage> {
   void settingsCallback(){
 
     //Saves the settings using shared preferences
+    setSignInPref(settings.signInValue);
     setSpeedPref(settings.isMetricSpeed);
     setDistPref(settings.isMetricDist);
     setDarkPref(settings.isDarkTheme);
@@ -1193,18 +1305,11 @@ class _MapPageState extends State<MapPage> {
     //Clears the saved trails and rebuilds them
     //this ensures that the static map has the correct style
     trails.clear();
+    localTrails.clear();
     loadMarkers.clear();
     buildFromJson();
+    getData();
     toggleSettings(settings);
-
-    //TODO figure out a better way to accomplish the settings callback rendering for the children
-    _children = [
-      Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
-      null,
-      LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
-      SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
-    ];
-
   }
 
   void savedTrailsOption(String choice, Trail trail) {
@@ -1245,10 +1350,26 @@ class _MapPageState extends State<MapPage> {
 
     if(isPublic != null) {
       saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, false);
-    } else {
+      isRecording = false;
+    } else if (isPublic == null && trailName != null){
       saveTrail(trailName, lines, time, avgSpeed, distance, isPublic, true, file: trailName);
       isRiding = false;
+    } else if (time == "-1") {
+      //Callback for clear
+      isRecording = false;
+      isRiding = false;
+      setState(() {});
+
+    }else if (time == "rec" && !isRiding){
+      //Callback to control state of bottom navigation bar
+//      isRecording = true;
+
+      //TODO why does this break the app when the user goes to ride?
+      setState(() {
+        isRecording = true;
+      });
     }
+
   }
 
   void toggleSettings(Settings set) {
@@ -1276,6 +1397,30 @@ class _MapPageState extends State<MapPage> {
     //Set measurement unit
     setState(() {
       isMeters = set.isMetricDist;
+    });
+
+    List<String> constantsTemp = new List();
+
+    //change ellipses menu options
+    if(settings.signInValue != null) {
+      constantsTemp.add(Constants.Settings);
+      constantsTemp.add(Constants.SignOut);
+    } else {
+      constantsTemp.add(Constants.Settings);
+      constantsTemp.add(Constants.SignIn);
+    }
+
+    //set new constants
+    setState(() {
+      constants = constantsTemp;
+
+      //TODO figure out a better way to accomplish the settings callback rendering for the children
+      _children = [
+        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
+        null,
+        LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
+      ];
     });
   }
 
@@ -1318,7 +1463,7 @@ class _MapPageState extends State<MapPage> {
           PopupMenuButton<String>(
             onSelected: choiceAction,
             itemBuilder: (BuildContext context){
-              return Constants.choices.map((String choice){
+              return constants.map((String choice){
                 return PopupMenuItem<String>(
                   value: choice,
                   child: Text(choice),
@@ -1335,24 +1480,24 @@ class _MapPageState extends State<MapPage> {
           fixedColor: Colors.black,
           items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-                icon: new Icon(Icons.home, /*color: iconColor*/),
+                icon: new Icon(Icons.directions_bike, color: iconColor),
                 title: new Text(""),
-                activeIcon: new Icon(Icons.home, /*color: Colors.black*/)
+                activeIcon: new Icon(Icons.directions_bike, color: Colors.black)
             ),
             BottomNavigationBarItem(
-              icon: new Icon(Icons.map, /*color: iconColor*/),
+              icon: new Icon(Icons.map, color: iconColor),
               title: new Text(""),
-                activeIcon: new Icon(Icons.map, /*color: Colors.black*/)
+                activeIcon: new Icon(Icons.map, color: Colors.black)
             ),
             BottomNavigationBarItem(
-                icon: new Icon(Icons.playlist_add_check, /*color: disabledIconColor*/),
+                icon: new Icon(Icons.public, color: isRecording ? disabledIconColor : iconColor),
                 title: new Text(""),
-                activeIcon: new Icon(Icons.playlist_add_check, /*color: Colors.black*/)
+                activeIcon: new Icon(Icons.public, color: Colors.black)
             ),
             BottomNavigationBarItem(
-                icon: new Icon(Icons.playlist_add_check, /*color: disabledIconColor*/),
+                icon: new Icon(Icons.favorite, color: isRecording ? disabledIconColor : iconColor),
                 title: new Text(""),
-                activeIcon: new Icon(Icons.playlist_add_check, /*color: Colors.black*/)
+                activeIcon: new Icon(Icons.favorite, color: Colors.black)
             )
             ],
           onTap: _onItemTapped,
@@ -1381,8 +1526,6 @@ class _MapPageState extends State<MapPage> {
         ];
       }
 
-
-
       setState(() {
         if (index == 1 && !isRiding) {
           showMap(null, null, 12.0);
@@ -1390,7 +1533,7 @@ class _MapPageState extends State<MapPage> {
         } else if (index == 1 && isRiding) {
           showMap(ridingTrail.points, ridingTrail.points[0], 14.0);
           _currentIndex = 0;
-        } else {
+        } else if (!isRecording){
           _currentIndex = index;
         }
       });
@@ -1407,7 +1550,7 @@ class _MapPageState extends State<MapPage> {
         _children = [
           Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
           null,
-          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
+          LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: trailID, callback: (str, trail)=> localTrailCallback(str, trail)),
           SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: trailID, callback: (str, trail)=> savedTrailsOption(str, trail))
         ];
       }
@@ -1419,7 +1562,7 @@ class _MapPageState extends State<MapPage> {
         } else if (index == 1 && isRiding) {
           showMap(ridingTrail.points, ridingTrail.points[0], 14.0);
           _currentIndex = 0;
-        } else {
+        } else if (!isRecording) {
           _currentIndex = index;
         }
       });
@@ -1428,56 +1571,26 @@ class _MapPageState extends State<MapPage> {
 
   }
 
-  //Have user enter trail information
-  _showDialog() async {
-    await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return new AlertDialog(
-          contentPadding: const EdgeInsets.all(16.0),
-          content: new Row(
-            children: <Widget>[
-              new Expanded(
-                child: new TextField(
-                  autofocus: true,
-                  controller: trailNameController,
-                  decoration: new InputDecoration(
-                      labelText: 'Trail Information', hintText: 'Trail Name', contentPadding: const EdgeInsets.only(top: 16.0)),
-                ),
-              )
-            ],
-          ),
-          actions: <Widget>[
-            new Text("Make Public"),
-            new Checkbox(
-                value: false,
-                onChanged: null
-            ),
-            new FlatButton(
-                child: const Text('Cancel'),
-                onPressed: () {
-                  Navigator.pop(context);
-                }),
-            new FlatButton(
-                child: const Text('Save'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  print(trailNameController.text);
-                 // saveTrail(trailNameController.text, polyLines, timeVal, aveSpeed, distanceTraveledVal);
-                  trailNameController.text = "";
-                })
-          ],
-        );
-      },
-    );
-  }
-
-
-  void choiceAction(String choice) {
+  void choiceAction(String choice) async {
     if (choice == Constants.Settings){
       Navigator.push(context, MaterialPageRoute(builder:
           (context) => SettingsMenu(settings: settings, darkTheme: settings.isDarkTheme, callback: () => settingsCallback())));
+    } else if (choice == Constants.SignIn) {
+      FirebaseUser user = await _handleSignIn();
+      if (user != null) {
+        setSignInPref(user.displayName);
+        settings.signInValue = user.displayName;
+        toggleSettings(settings);
+        fbUser = user;
+      } else {
+        print ("sign in failed");
+      }
+    } else if (choice == Constants.SignOut) {
+      setSignInPref(null);
+      settings.signInValue = null;
+      toggleSettings(settings);
+      _handleSignOut();
+
     }
   }
 

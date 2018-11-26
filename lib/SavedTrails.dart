@@ -56,6 +56,7 @@ class SavedTrailsState extends State<SavedTrails> with AfterLayoutMixin<SavedTra
       isDark = false;
     }
 
+    print("isDark = $isDark");
 
     //Used to scroll to a specific trail if selected from map
     if (widget.viewTrail != null) {
@@ -164,7 +165,7 @@ class SavedTrailsState extends State<SavedTrails> with AfterLayoutMixin<SavedTra
                       ),
                         new InkWell(
                           child: new FadeInImage.assetNetwork(
-                            placeholder: widget.theme == ThemeData.light() ? "lib/assets/staticmap.png": "lib/assets/staticmapdark.png",
+                            placeholder: widget.theme.primaryColor == Colors.grey[900] ? "lib/assets/staticmapdark.png": "lib/assets/staticmap.png",
                             image: widget.trails[index].uri.toString(),
                         ),
                           onTap: () => showOnMap(widget.trails[index]),

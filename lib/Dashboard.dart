@@ -286,6 +286,39 @@ class DashboardState extends State<Dashboard> {
 
   }
 
+  void clearDashboard() {
+    setState(() {
+      timeVal = "00:00:00:00";
+      speedVal = 0.0;
+      aveSpeedVal = 0.0;
+      countVal = 0;
+      latVal = 0.0;
+      longVal = 0.0;
+      altVal = 0.0;
+      distanceTraveledVal = 0.0;
+      distanceLeftVal = 0.0;
+    });
+
+    dist = 0.0;
+    countVal = 0;
+    count = 0;
+    newLine = new Polyline(
+        "1",
+        <Location>[
+        ],
+        width: 15.0,
+        color: Colors.blue,
+        jointType: FigureJointType.round);
+    polyLines = [];
+
+    if(isRecording) {
+      toggleRecording(true);
+    }
+
+    widget.callback(null, null, "-1", null, null, null);
+
+  }
+
   void toggleRecording(bool isRiding) {
 
     //Get correct units
@@ -299,6 +332,8 @@ class DashboardState extends State<Dashboard> {
       setState(() => isRecording = !isRecording);
     }
 
+    print("__________ $isRecording _________________");
+
     //starts stream if isRecording is true
     if (isRecording){
       //Reset and start stopwatch
@@ -308,6 +343,9 @@ class DashboardState extends State<Dashboard> {
       timer = new Timer.periodic(new Duration(milliseconds: 30), setStopWatchGui);
 
       getPositionStream(isRiding);
+
+      widget.callback(null, null, "rec", null, null, null);
+
     } else {
 
       //Stop the stopwatch
@@ -325,8 +363,12 @@ class DashboardState extends State<Dashboard> {
         });
       }
 
-      if(widget.rideTrail != null) {
+      if(widget.rideTrail != null && !isRiding) {
         stopRide(widget.rideTrail.id, polyLines, timeVal, aveSpeed, distanceTraveledVal, null);
+        Scaffold.of(context).showSnackBar(SnackBar(content: Text(widget.rideTrail.name + " updated, clear dashboard")));
+
+      } else if (widget.rideTrail != null && isRiding) {
+        stopRide(null, null, "-1", null, null, null);
       }
 
     }
@@ -407,7 +449,7 @@ class DashboardState extends State<Dashboard> {
               latVal = loc.latitude;
               longVal = loc.longitude;
               altVal = altitude;
-              distanceTraveledVal = distance;
+              distanceTraveledVal += distance;
 
               if (isRiding) {
                 distanceLeftVal = calculateDistanceLeft(loc);
@@ -440,7 +482,7 @@ class DashboardState extends State<Dashboard> {
   }
 
   void saveTrail(String trailName, List<Polyline> lines, String time, double avgSpeed, double distance, bool isPublic) {
-
+    clearDashboard();
     widget.callback(trailName, lines, time, avgSpeed, distance, isPublic);
   }
 
@@ -738,6 +780,10 @@ class DashboardState extends State<Dashboard> {
                 new Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: <Widget>[
+                    new RaisedButton(
+                        child: Text("Clear"),
+                        elevation: 2.0,
+                        onPressed: () => clearDashboard()),
                     new RaisedButton(
                         child: isRecording ? Text("Stop Recording") : Text(
                             "Start Recording"),
