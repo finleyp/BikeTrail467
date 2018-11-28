@@ -54,7 +54,6 @@ android {
         //minifyEnabled true
     }
 
-
     signingConfigs {
         release {
             keyAlias keystoreProperties['keyAlias']
