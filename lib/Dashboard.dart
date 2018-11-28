@@ -461,19 +461,19 @@ class DashboardState extends State<Dashboard> {
 
           }
 
+            //Clear the list of polylines before adding the new version
+            polyLines.clear();
 
+            //Add newLine to List of polylines
+            polyLines.add(newLine);
 
-          //Clear the list of polylines before adding the new version
-          polyLines.clear();
+          if (!isRiding) {
+            mapView.clearPolylines();
 
-          //Add newLine to List of polylines
-          polyLines.add(newLine);
-
-          mapView.clearPolylines();
-
-          //Update lines on map
-          mapView.setPolylines(polyLines);
-          //mapView.setPolylines(loadLines);
+            //Update lines on map
+            mapView.setPolylines(polyLines);
+            //mapView.setPolylines(loadLines);
+          }
 
         });
 

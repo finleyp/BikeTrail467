@@ -444,7 +444,7 @@ class _MapPageState extends State<MapPage> {
     //Follow user if recording or riding
     mapView.onLocationUpdated.listen((location) {
       if (isRiding || isRecording) {
-        mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), 24.0));
+        mapView.setCameraPosition(new CameraPosition(new Location(location.latitude,location.longitude), 18.0));
       }
     });
 
@@ -545,91 +545,94 @@ class _MapPageState extends State<MapPage> {
 //    }
 //  }
 
-  void getPositionStream() {
-
-    var locationOptions = LocationOptions(
-        accuracy: LocationAccuracy.best, distanceFilter: 1);
-
-    Location loc1;
-    Location loc2;
-
-    //streamSubscription to get location on update
-    positionStream = geolocator.getPositionStream(
-        locationOptions).listen(
-            (Position position) {
-          print(
-              position == null ? 'Unknown' : position.latitude.toString() + ', ' +
-                  position.longitude.toString());
-
-          tempSpeed = position.speed.toDouble();
-          //Unit conversions, rounding, and string building
-          double speed = tempSpeed;
-          double altitude = convertAlt(position.altitude);
-
-          //convert the Position object to Location object to be usable with map_view
-          Location loc = new Location.full(position.latitude, position.longitude, stopWatch.elapsed.inSeconds,
-              position.altitude, position.speed, position.heading, 0.0, 0.0);
-
-          //Add point to polylines object
-          newLine.points.add(loc);
-
-          //calculate distance
-          if (loc1 != null && loc2 != null) {
-
-            //move to the next section of the path
-            loc1 = loc2;
-            loc2 = loc;
-
-            calculateDistance(loc1, loc2);
-          } else if (loc1 == null && loc2 == null) {
-            loc1 = loc;
-          } else if (loc1 != null && loc2 == null) {
-            loc2 = loc;
-            //first section of path
-            calculateDistance(loc1, loc2);
-          }
-
-          count++;
-
-
-          if (aveCount <= 1){
-            aveSpeed = speed;
-            aveCount++;
-          }else if (speed > 0.25){
-            aveSpeed = ((aveSpeed * ((aveCount-1).toDouble()/aveCount.toDouble()))+(speed * (1.0/aveCount.toDouble())));
-            aveCount++;
-          }
-
-
-
-
-          setState(() {
-            speedVal = convertSpeed(speed);
-            aveSpeedVal = convertSpeed(aveSpeed);
-            countVal = count;
-            latVal = loc.latitude;
-            longVal = loc.longitude;
-            altVal = altitude;
-          });
-
-
-          //Clear the list of polylines before adding the new version
-          polyLines.clear();
-
-          //Add newLine to List of polylines
-          polyLines.add(newLine);
-
-          mapView.clearPolylines();
-
-          //Update lines on map
-          mapView.setPolylines(polyLines);
-          //mapView.setPolylines(loadLines);
-
-        });
-
-
-
-  }
+//  void getPositionStream() {
+//
+//    var locationOptions = LocationOptions(
+//        accuracy: LocationAccuracy.best, distanceFilter: 1);
+//
+//    Location loc1;
+//    Location loc2;
+//
+//    //streamSubscription to get location on update
+//    positionStream = geolocator.getPositionStream(
+//        locationOptions).listen(
+//            (Position position) {
+//          print(
+//              position == null ? 'Unknown' : position.latitude.toString() + ', ' +
+//                  position.longitude.toString());
+//
+//          tempSpeed = position.speed.toDouble();
+//          //Unit conversions, rounding, and string building
+//          double speed = tempSpeed;
+//          double altitude = convertAlt(position.altitude);
+//
+//          //convert the Position object to Location object to be usable with map_view
+//          Location loc = new Location.full(position.latitude, position.longitude, stopWatch.elapsed.inSeconds,
+//              position.altitude, position.speed, position.heading, 0.0, 0.0);
+//
+//          //Add point to polylines object
+//          newLine.points.add(loc);
+//
+//          //calculate distance
+//          if (loc1 != null && loc2 != null) {
+//
+//            //move to the next section of the path
+//            loc1 = loc2;
+//            loc2 = loc;
+//
+//            calculateDistance(loc1, loc2);
+//          } else if (loc1 == null && loc2 == null) {
+//            loc1 = loc;
+//          } else if (loc1 != null && loc2 == null) {
+//            loc2 = loc;
+//            //first section of path
+//            calculateDistance(loc1, loc2);
+//          }
+//
+//          count++;
+//
+//
+//          if (aveCount <= 1){
+//            aveSpeed = speed;
+//            aveCount++;
+//          }else if (speed > 0.25){
+//            aveSpeed = ((aveSpeed * ((aveCount-1).toDouble()/aveCount.toDouble()))+(speed * (1.0/aveCount.toDouble())));
+//            aveCount++;
+//          }
+//
+//
+//
+//
+//          setState(() {
+//            speedVal = convertSpeed(speed);
+//            aveSpeedVal = convertSpeed(aveSpeed);
+//            countVal = count;
+//            latVal = loc.latitude;
+//            longVal = loc.longitude;
+//            altVal = altitude;
+//          });
+//
+//          print("BEFORE________________________________________$isRiding");
+//          if (!isRiding) {
+//            print("AFTER___________________________________________");
+//            //Clear the list of polylines before adding the new version
+//            polyLines.clear();
+//
+//            //Add newLine to List of polylines
+//            polyLines.add(newLine);
+//
+//            mapView.clearPolylines();
+//
+//            //Update lines on map
+//            mapView.setPolylines(polyLines);
+//            //mapView.setPolylines(loadLines);
+//          }
+//
+//        });
+//
+//
+//
+//  }
 
   //String
   double convertSpeed(var speed){
@@ -1364,7 +1367,6 @@ class _MapPageState extends State<MapPage> {
       //Callback to control state of bottom navigation bar
 //      isRecording = true;
 
-      //TODO why does this break the app when the user goes to ride?
       setState(() {
         isRecording = true;
       });

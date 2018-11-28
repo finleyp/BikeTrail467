@@ -49,6 +49,7 @@ captures/
 *.ipr
 *~
 *.swp
+key.properties
 
 # Android Patch
 gen-external-apklibs
