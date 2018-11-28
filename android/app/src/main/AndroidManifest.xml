@@ -23,7 +23,7 @@
     <application
         android:name="io.flutter.app.FlutterApplication"
 
-        android:label="map_feasibility"
+        android:label="Bike Trails"
         android:icon="@mipmap/ic_launcher">
         #meta data that works with flutter plugin map_view that lets you access google maps
         <meta-data android:name="com.google.android.maps.v2.API_KEY" android:value="AIzaSyBZodZXTiZIxcz6iBwL076yNEq_11769Fo"/>
