@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- io.flutter.app.FlutterApplication is an android.app.Application that
          calls FlutterMain.startInitialization(this); in its onCreate method.
@@ -22,7 +23,7 @@
     <application
         android:name="io.flutter.app.FlutterApplication"
 
-        android:label="map_feasibility"
+        android:label="Bike Trails"
         android:icon="@mipmap/ic_launcher">
         #meta data that works with flutter plugin map_view that lets you access google maps
         <meta-data android:name="com.google.android.maps.v2.API_KEY" android:value="AIzaSyBZodZXTiZIxcz6iBwL076yNEq_11769Fo"/>

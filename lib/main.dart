@@ -23,6 +23,15 @@ import 'placeholder_widget.dart';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'Settings.dart';
+import 'package:flutter/services.dart';
+import 'package:screen/screen.dart';
+
+
+
+
+
+
+
 
 ///
 /// Stopwatch source and inspiration
@@ -134,10 +143,20 @@ Polyline loadLine = new Polyline(
 
 void main(){
   MapView.setApiKey(api_key);
+  Screen.keepOn(true);
+
+
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+      .then((_) {
+
+
   runApp(new MaterialApp(
     debugShowCheckedModeBanner: false,
     home: new MapPage(),
   ));
+
+});
+
 }
 
 class MapPage extends StatefulWidget{
