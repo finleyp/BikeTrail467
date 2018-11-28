@@ -51,6 +51,8 @@ captures/
 *.json
 
 
+key.jks
+
 # Android Patch
 gen-external-apklibs
 
