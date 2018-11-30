@@ -58,7 +58,6 @@ class LocalTrailsState extends State<LocalTrails> with AfterLayoutMixin<LocalTra
       isDark = false;
     }
 
-    print("isDark = $isDark");
 
     //Used to scroll to a specific trail if selected from map
     if (widget.viewTrail != null) {
