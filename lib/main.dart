@@ -484,18 +484,18 @@ class _MapPageState extends State<MapPage> {
 
       //Navigate to saved trails list or local trails list at certain trail
 
-      for(var trail in trails) {
-        if (marker.id == trail.id){
-          setState(() {
-            _onItemTapped(3, trailID: marker.id);
-          });
-        }
-      }
-
       for (var trail in localTrails) {
         if (marker.id == trail.id){
           setState(() {
             _onItemTapped(2, trailID: marker.id);
+          });
+        }
+      }
+
+      for(var trail in trails) {
+        if (marker.id == trail.id){
+          setState(() {
+            _onItemTapped(3, trailID: marker.id);
           });
         }
       }
@@ -909,6 +909,7 @@ class _MapPageState extends State<MapPage> {
         //Function call to add new trail onto the database
 
 
+        print("Filename $fileName");
         createJson(tInfo, dir, fileName);
         tInfo["name"] = trailName;
         tInfo["fileName"] = fileName;
@@ -920,8 +921,8 @@ class _MapPageState extends State<MapPage> {
 
 
 
-        this.setState(() =>
-        trailContent = json.decode(trailsJsonFile.readAsStringSync()));
+//        this.setState(() =>
+//        trailContent = json.decode(trailsJsonFile.readAsStringSync()));
         print("saved: $fileName");
         //only try to back up if logged in
         if(fbUser != null) {
@@ -963,6 +964,7 @@ class _MapPageState extends State<MapPage> {
 
     bool existsLocal = false;
     bool existsSaved = false;
+
 
     //Set style for the static maps
     if (settings.isDarkTheme) {
@@ -1216,12 +1218,15 @@ class _MapPageState extends State<MapPage> {
       });
       //mapView.setPolylines(loadLines);
       mapView.setMarkers(loadMarkers);
+
     });
   }
 
   void addToSavedList(Trail trail) {
+
     List<Polyline> lines = [trail.polyline];
     saveTrail(trail.name, lines, trail.time, trail.avgSpeed, trail.length, false, false, file: trail.id);
+    updateWidget();
   }
 
   void deleteFile(String file){
@@ -1315,7 +1320,7 @@ class _MapPageState extends State<MapPage> {
     return prefs.setBool(debugPref, value);
   }
 
-  void settingsCallback(){
+  void settingsCallback() async {
 
     //Saves the settings using shared preferences
     setSignInPref(settings.signInValue);
@@ -1326,11 +1331,69 @@ class _MapPageState extends State<MapPage> {
 
     //Clears the saved trails and rebuilds them
     //this ensures that the static map has the correct style
-    trails.clear();
-    localTrails.clear();
-    loadMarkers.clear();
-    buildFromJson();
-    getData();
+//    trails.clear();
+//    localTrails.clear();
+//    loadMarkers.clear();
+    //buildFromJson();
+
+    //Dark Theme
+    List<String> style = [
+      "feature:all|hue: 0xff1a00",
+      "feature:all|invert_lightness:true",
+      "feature:all|saturation:-100",
+      "feature:all|lightness:45",
+      "feature:all|gamma:0.5",
+      "feature:all|element:labels.text.stroke|color:0x000000",
+      "feature:all|element:labels.text.stroke|lightness:12",
+      "feature:water|element:geometry|color:0x0f252e",
+      "feature:water|element:geometry|lightness:17"
+    ];
+
+    for (var trail in trails) {
+
+      Location startPoint = trail.points.first;
+      Location endPoint = trail.points.last;
+
+      List<Marker> markers = createMarkers(startPoint, endPoint);
+
+      List<Location> newPoints = shortenPointsList(trail.points);
+
+      //Retain first and last points
+      newPoints.insert(0, startPoint);
+      newPoints.add(endPoint);
+
+      if (settings.isDarkTheme) {
+        trail.uri = staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(newPoints, markers,
+            width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green", customIcon: true);
+      } else {
+        trail.uri = staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(newPoints, markers,
+            width: 500, height: 200, maptype: StaticMapViewType.terrain, pathColor: "green", customIcon: true);
+      }
+    }
+
+    for (var trail in localTrails) {
+
+      Location startPoint = trail.points.first;
+      Location endPoint = trail.points.last;
+
+      List<Marker> markers = createMarkers(startPoint, endPoint);
+
+      List<Location> newPoints = shortenPointsList(trail.points);
+
+      //Retain first and last points
+      newPoints.insert(0, startPoint);
+      newPoints.add(endPoint);
+
+      if (settings.isDarkTheme) {
+        trail.uri = staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(newPoints, markers,
+            width: 500, height: 200, maptype: StaticMapViewType.terrain, style: style, pathColor: "green", customIcon: true);
+      } else {
+        trail.uri = staticMapUri = staticMapProvider.getStaticUriWithPathAndMarkers(newPoints, markers,
+            width: 500, height: 200, maptype: StaticMapViewType.terrain, pathColor: "green", customIcon: true);
+      }
+    }
+
+//    getData();
     toggleSettings(settings);
   }
 
@@ -1341,6 +1404,16 @@ class _MapPageState extends State<MapPage> {
       showMap(trail.points, trail.points[middle], 14.0);
     } else if (choice == '1') {
       deleteFile(trail.id);
+
+      //remove from the list
+      Trail temp;
+      for (var t in trails) {
+        if (trail.id == t.id) {
+          temp = t;
+          break;
+        }
+      }
+      trails.remove(temp);
     } else if (choice == '2') {
       rideTrail(trail);
     }
@@ -1434,14 +1507,7 @@ class _MapPageState extends State<MapPage> {
     //set new constants
     setState(() {
       constants = constantsTemp;
-
-      //TODO figure out a better way to accomplish the settings callback rendering for the children
-      _children = [
-        Dashboard(theme: theme, isKph: isKph, isMeters: isMeters, isDebug: showDebug, callback: (trailName, lines, time, avgSpeed, distance, isPublic) => saveCallback(trailName, lines, time, avgSpeed, distance, isPublic)),
-        null,
-        LocalTrails(trails: localTrails, savedTrails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> localTrailCallback(str, trail)),
-        SavedTrails(trails: trails, theme: theme, isKph: isKph, isMeters: isMeters, viewTrail: null, callback: (str, trail)=> savedTrailsOption(str, trail))
-      ];
+      updateWidget();
     });
   }
 

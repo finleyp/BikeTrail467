@@ -9,7 +9,7 @@ class Trail {
   final Polyline polyline;
   final Marker startMarker;
   final Marker endMarker;
-  final Uri uri;
+  Uri uri;
   final String description;
   final String time;
   final double length;
@@ -20,4 +20,9 @@ class Trail {
   Trail(this.id, this.name, this.points, this.startMarker,
       this.endMarker, this.polyline, this.uri, this.description,
       this.time, this.length, this.avgSpeed);
+
+  set setUri(Uri u) {
+    uri = u;
+  }
+
 }
