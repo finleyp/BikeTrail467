@@ -161,7 +161,6 @@ class SavedTrailsState extends State<SavedTrails> with AfterLayoutMixin<SavedTra
                     children: <Widget>[
                       new ListTile(
                         title: Text(widget.trails[index].name),
-                        subtitle: Text(widget.trails[index].id),
                       ),
                         new InkWell(
                           child: new FadeInImage.assetNetwork(
