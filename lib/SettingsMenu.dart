@@ -88,7 +88,7 @@ class _SelectionControl extends State<SettingsMenu> {
                             });
                             updatePref(value);
                           }),
-                      SwitchListTile(title: Text('Debug Values: '),
+                      SwitchListTile(title: Text('Advanced Dashboard: '),
                           value: isShowDebug,
                           onChanged: (bool value) {
                             setState(() {
