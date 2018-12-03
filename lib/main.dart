@@ -1118,7 +1118,7 @@ class _MapPageState extends State<MapPage> {
         start.longitude,
         color: Colors.green,
         markerIcon: new MarkerIcon(
-          "https://goo.gl/1VVHYw",
+          "http://oi66.tinypic.com/fay1yr.jpg",
 //          width: 112.0,
 //          height: 75.0,
         ),
