@@ -1,5 +1,7 @@
 # Bike Trails 
 
+<img src="https://github.com/finleyp/BikeTrail467/wiki/media/bike-icon.png" width="150" height="150">
+
 A cross platform mobile application built using Flutter to allow users the ability to record bike trails.
 
 Features:
@@ -9,8 +11,6 @@ Features:
 * Trail Sharing
 * Trail Riding
 * Trail Statistics
-
-![alt text](https://github.com/finleyp/BikeTrail467/wiki/media/bike-icon.png "Bike Trails Logo")
 
 ## Getting Started
 
