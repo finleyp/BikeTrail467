@@ -1,6 +1,16 @@
 # Bike Trails
 
-An app to record bike trails 
+[[media/bike-icon.png]]
+
+A cross platform mobile application built using Flutter to allow users the ability to record bike trails.
+
+Features:
+
+* Trail Recording
+* Trail Saving
+* Trail Sharing
+* Trail Riding
+* Trail Statistics
 
 ## Getting Started
 
