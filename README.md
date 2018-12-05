@@ -1,7 +1,5 @@
 # Bike Trails
 
-[[media/bike-icon.png]]
-
 A cross platform mobile application built using Flutter to allow users the ability to record bike trails.
 
 Features:
